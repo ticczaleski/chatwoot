@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - develop
+    paths:
+      - 'app/javascript/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.eslintrc.js'
+      - '.prettierrc'
+      - 'tailwind.config.js'
+      - 'vite*.ts'
+      - 'vitest*.ts'
+      - 'vitest*.js'
   pull_request:
     branches:
       - develop

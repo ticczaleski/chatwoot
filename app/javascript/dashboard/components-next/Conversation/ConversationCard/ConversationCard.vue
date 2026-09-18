@@ -108,7 +108,9 @@ const onCardClick = e => {
     />
     <div class="flex flex-col w-full gap-0.5 min-w-0 justify-center">
       <div class="flex items-center justify-between h-6 gap-2">
-        <h4 class="text-[16px] font-normal truncate text-wa-text dark:text-wa-text-dark">
+        <h4
+          class="text-[16px] font-normal truncate text-wa-text dark:text-wa-text-dark"
+        >
           {{ currentContactName }}
         </h4>
         <div class="flex items-center gap-1.5 flex-shrink-0">

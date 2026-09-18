@@ -69,16 +69,6 @@ const orientationMap = {
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
-const flexOrientationClass = computed(() => {
-  const map = {
-    [ORIENTATION.LEFT]: 'justify-start',
-    [ORIENTATION.RIGHT]: 'justify-end',
-    [ORIENTATION.CENTER]: 'justify-center',
-  };
-
-  return map[orientation.value];
-});
-
 const messageClass = computed(() => {
   const classToApply = [varaintBaseMap[variant.value]];
 

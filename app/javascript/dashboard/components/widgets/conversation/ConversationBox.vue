@@ -96,7 +96,8 @@ export default {
   <div
     class="conversation-details-wrap flex flex-col min-w-0 w-full bg-wa-bg dark:bg-wa-chat-bg-dark relative"
     :class="{
-      'border-l rtl:border-l-0 rtl:border-r border-wa-border dark:border-wa-border-dark': !isOnExpandedLayout,
+      'border-l rtl:border-l-0 rtl:border-r border-wa-border dark:border-wa-border-dark':
+        !isOnExpandedLayout,
     }"
   >
     <ConversationHeader

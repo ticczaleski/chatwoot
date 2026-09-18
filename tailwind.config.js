@@ -2,6 +2,7 @@ const { slateDark } = require('@radix-ui/colors');
 import { colors } from './theme/colors';
 import { icons } from './theme/icons';
 const defaultTheme = require('tailwindcss/defaultTheme');
+const defaultColors = require('tailwindcss/colors');
 const {
   iconsPlugin,
   getIconCollections,
@@ -219,6 +220,7 @@ const tailwindConfig = {
       current: 'currentColor',
       ...colors,
       body: slateDark.slate7,
+      amber: defaultColors.amber,
       wa: {
         bg: '#efeae2',
         panel: '#f0f2f5',
@@ -229,7 +231,11 @@ const tailwindConfig = {
         'bubble-out': '#d9fdd3',
         'bubble-out-dark': '#005c4b',
         'bubble-private': '#fef3c7',
+        'bubble-private-dark': '#451a03',
         'bubble-private-text': '#78350f',
+        'bubble-private-text-dark': '#fde68a',
+        'bubble-private-border': '#fcd34d',
+        'bubble-private-border-dark': '#92400e',
         teal: '#00a884',
         'teal-hover': '#008f6f',
         green: '#25d366',

@@ -6,6 +6,15 @@ on:
     branches:
       - develop
       - master
+    paths-ignore:
+      - 'app/javascript/**'
+      - 'public/**'
+      - '*.md'
+      - 'docs/**'
+      - '.github/workflows/docker-build.yml'
+      - '.github/workflows/sync-upstream.yml'
+      - '.prettierrc'
+      - 'tailwind.config.js'
   pull_request:
   workflow_dispatch:
 
