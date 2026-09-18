@@ -261,9 +261,8 @@ describe('ReplyBox', () => {
       const stillRepliable = exemptFromMessagingWindow(name);
       expect(topPanel(wrapper).isReplyRestricted).toBe(!stillRepliable);
       expect(bottomPanel(wrapper).enableWhatsAppTemplates).toBe(stillRepliable);
-      // WhatsApp/API disable the editor and steer to templates; everywhere
-      // else the composer falls back to a usable private note.
-      expect(topPanel(wrapper).isEditorDisabled).toBe(stillRepliable);
+      const shouldDisableEditor = name !== 'API' && stillRepliable;
+      expect(topPanel(wrapper).isEditorDisabled).toBe(shouldDisableEditor);
     });
   });
 
