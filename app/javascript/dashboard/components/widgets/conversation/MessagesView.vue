@@ -485,7 +485,7 @@ export default {
         :href-link-text="$t('CONVERSATION.INSTAGRAM_RESTRICTION_STATUS_LINK')"
       />
       <Banner
-        v-if="!currentChat.can_reply"
+        v-if="!currentChat.can_reply && !isAPIInbox"
         color-scheme="alert"
         class="mx-2 mt-2 overflow-hidden rounded-lg"
         :banner-message="replyWindowBannerMessage"

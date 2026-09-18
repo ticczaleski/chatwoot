@@ -7,6 +7,7 @@ class Conversations::MessageWindowService
   end
 
   def can_reply?
+    return true if @conversation.inbox.channel.additional_attributes&.dig('ignore_messaging_window').to_s == 'true'
     return true if messaging_window.blank?
 
     last_message_in_messaging_window?(messaging_window)
@@ -32,9 +33,9 @@ class Conversations::MessageWindowService
   end
 
   def last_message_in_messaging_window?(time)
-    return false if last_incoming_message.nil?
+    return Time.current < last_incoming_message.created_at + time if last_incoming_message.present?
 
-    Time.current < last_incoming_message.created_at + time
+    Time.current < @conversation.created_at + time
   end
 
   def api_messaging_window

@@ -11,6 +11,7 @@
     "TAB_HEADING": "Conversations",
     "MENTION_HEADING": "Mentions",
     "UNATTENDED_HEADING": "Unattended",
+    "COMPOSE_CONVERSATION": "New conversation",
     "SEARCH": {
       "INPUT": "Search for People, Chats, Saved Replies .."
     },

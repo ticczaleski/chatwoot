@@ -36,7 +36,7 @@ class Contacts::ContactableInboxesService
 
   def api_contactable_inbox(inbox)
     latest_contact_inbox = inbox.contact_inboxes.where(contact: @contact).last
-    source_id = latest_contact_inbox&.source_id || SecureRandom.uuid
+    source_id = latest_contact_inbox&.source_id || @contact.phone_number&.delete('+') || SecureRandom.uuid
 
     { source_id: source_id, inbox: inbox }
   end
