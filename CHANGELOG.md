@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.18.0-wa.5] - 2026-09-18
+
+### 🐛 Corrigido (Fixed)
+- **Papel de parede invisível em modo claro e escuro (regressão da 4.18.0-wa.3):**
+  - Na correção anterior, a opacidade do doodle em modo escuro foi reduzida para `8%` visando imitar o contraste discreto do WhatsApp Web real. Como o asset usado (`wa-chat-bg.png`) é um PNG **opaco** (não um SVG transparente), aplicar `opacity` de CSS sobre ele mistura a imagem inteira com a cor de fundo — a 8%, a diferença entre o traço do doodle e o fundo quase preto cai para ~6/255, imperceptível na prática.
+  - Ajustado para `30%` em ambos os temas (antes: `35%` claro / `8%` escuro), valor que mantém contraste visível sem repetir o excesso de opacidade (100%) da implementação original.
+  - Pesquisado como referência o repositório `Luizcc87/wacrm-multi-ling`, que resolve isso de forma mais robusta com um SVG transparente com opacidade já calibrada no próprio traço (`stroke-opacity`), evitando por completo a necessidade de ajustar `opacity`/`filter` em runtime — fica registrado como possível melhoria futura (trocar o PNG opaco por um SVG com fundo transparente).
+
+---
+
 ## [4.18.0-wa.4] - 2026-09-18
 
 ### 🐛 Corrigido (Fixed)
