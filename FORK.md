@@ -25,22 +25,25 @@ Abaixo está o mapa de todos os arquivos modificados ou adicionados neste fork. 
 
 | Arquivo | Tipo | Descrição |
 |---|---|---|
+| `CHANGELOG.md` | Documentação | Registro cronológico detalhado de todas as alterações, correções e versões do fork. |
 | `tailwind.config.js` | Configuração | Paleta `wa:*`, import de `defaultColors.amber` e definição de background `wa-doodle`. |
-| `public/dashboard/images/wa-doodle.svg` | Asset | Padrão vetorial SVG com doodles característicos do papel de parede do WhatsApp. |
+| `public/dashboard/images/wa-chat-bg.png` | Asset | Papel de parede oficial com doodles do WhatsApp Web. |
 | `app/javascript/dashboard/components-next/message/bubbles/Base.vue` | Componente | Balões de mensagem com cantos assimétricos (cauda), espaçamentos e metadados. |
-| `app/javascript/dashboard/components-next/message/MessageList.vue` | Componente | Área de rolagem com background `wa-doodle`. |
+| `app/javascript/dashboard/components-next/message/MessageList.vue` | Componente | Área de mensagens com background do WhatsApp Web via classes Tailwind. |
 | `app/javascript/dashboard/components-next/message/MessageStatus.vue` | Componente | Ticks de confirmação (cinza para entregue, azul WhatsApp `#53bdeb` para lido). |
 | `app/javascript/dashboard/components-next/Conversation/ConversationCard/ConversationCard.vue` | Componente | Card de conversa com avatares de 48px, tipografia e espaçamentos do WhatsApp Web. |
 | `app/javascript/dashboard/components-next/Conversation/ConversationCard/UnreadBadge.vue` | Componente | Badge de mensagens não lidas no tom verde `#25d366`. |
 | `app/javascript/dashboard/components-next/Conversation/ConversationCard/CardMessagePreview.vue` | Componente | Preview de mensagem com estilo WhatsApp. |
 | `app/javascript/dashboard/components-next/Conversation/ConversationCard/CardMessagePreviewWithMeta.vue` | Componente | Preview com metadados ajustados. |
 | `app/javascript/dashboard/components/ChatList.vue` | Componente | Estrutura e plano de fundo da coluna de conversas. |
-| `app/javascript/dashboard/components/ChatListHeader.vue` | Componente | Cabeçalho da lista de conversas com 60px e cores WhatsApp. |
+| `app/javascript/dashboard/components/ChatListHeader.vue` | Componente | Cabeçalho da lista de conversas com botão de Nova Conversa (`ComposeConversation`). |
 | `app/javascript/dashboard/components/widgets/conversation/ConversationBox.vue` | Componente | Painel principal de conversa com bordas e cores alinhadas. |
 | `app/javascript/dashboard/components/widgets/conversation/ConversationHeader.vue` | Componente | Barra de título da conversa aberta (avatar, nome e status). |
-| `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue` | Componente | Container das mensagens e rodapé de resposta. |
-| `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue` | Componente | Caixa de digitação com bordas suaves, fundo branco e suporte a notas privadas. |
+| `app/javascript/dashboard/components/widgets/conversation/MessagesView.vue` | Componente | Container das mensagens e ocultação de banner 24h para canais de API. |
+| `app/javascript/dashboard/components/widgets/conversation/ReplyBox.vue` | Componente | Caixa de digitação sem bloqueio de janela 24h para API inboxes e com min-height seguro. |
 | `app/javascript/dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue` | Componente | Botão de envio em tom teal `#00a884`. |
+| `app/services/conversations/message_window_service.rb` | Backend | Suporte a `ignore_messaging_window` e compatibilidade com conversas outbound. |
+| `app/services/contacts/contactable_inboxes_service.rb` | Backend | Roteamento de número de telefone do contato para canais de API (Evolution API). |
 | `docker-compose.production.yaml` | Infra | Aponta para a imagem `ticczaleski/chatwoot:latest`. |
 | `.github/workflows/docker-build.yml` | CI/CD | Pipeline automatizado de build e publicação no Docker Hub. |
 | `.github/workflows/sync-upstream.yml` | CI/CD | Checagem semanal de novidades do repositório upstream com PR automático. |

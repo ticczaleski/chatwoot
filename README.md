@@ -21,6 +21,7 @@ ___
 - 📱 **Compatibilidade Mobile 100% Preservada**: Nenhuma rota ou controller Rails foi alterado; os aplicativos móveis oficiais para **Android** e **iOS** continuam operando normalmente via API e WebSockets.
 - 🔄 **Sincronização Upstream Sem Perdas**: Pipeline automatizado de checagem semanal para atualizar o fork com novidades do Chatwoot oficial.
 - 📖 **Documentação de Arquitetura**: Veja [FORK.md](./FORK.md) para o guia completo de manutenção e CI/CD.
+- 📋 **Histórico de Mudanças**: Acompanhe todas as atualizações em [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
