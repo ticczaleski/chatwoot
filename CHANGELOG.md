@@ -28,10 +28,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **Plano de Fundo Oficial do WhatsApp Web:**
   - Baixado e integrado o papel de parede com doodles oficial do WhatsApp Web (`public/dashboard/images/wa-chat-bg.png`).
   - Configurada camada de fundo via Tailwind CSS em `MessageList.vue` com pseudo-elementos `before:`:
-    - **Tema Claro:** Fundo creme `#efeae2` com doodles a 6% de opacidade.
-    - **Tema Escuro:** Fundo escuro `#0b141a` com inversão de cores (`dark:before:invert`) e opacidade a 6%.
+    - **Tema Escuro:** Papel de parede dark oficial em fidelidade 100% (`opacity: 1`), com repetição contínua em proporção 420px.
+    - **Tema Claro:** Inversão automática com opacidade calibrada a 35% sobre o fundo creme `#efeae2`.
     - Elementos e balões de mensagem preservados na camada superior (`z-10`).
-  - Configuração do asset `wa-doodle` atualizada em `tailwind.config.js`.
+  - Configuração do asset `wa-doodle` atualizada em `tailwind.config.js` e asset duplicado em `app/javascript/dashboard/assets/images/` para garantir resolução pelo Vite e Rails.
 
 ---
 
