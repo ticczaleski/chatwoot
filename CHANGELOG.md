@@ -7,6 +7,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.18.0-wa.3] - 2026-09-18
+
+### 🐛 Corrigido (Fixed)
+- **Caixa de resposta colapsada (Evolution API / API Inboxes):**
+  - Substituído o hack de CSS customizado (`min-height` fixo em `.reply-box`/`.reply-box__top`, fora do padrão Tailwind-only do projeto) por `shrink-0` no rodapé de resposta em `MessagesView.vue` e `ReplyBox.vue`, garantindo que o elemento mantenha sua altura natural de conteúdo e não seja espremido pelo item `flex-grow` (lista de mensagens).
+- **Papel de parede piscando/sumindo em modo escuro:**
+  - O `::before` decorativo do papel de parede vivia DENTRO do `<ul>` que é o próprio contêiner com rolagem (`overflow-y-auto`) da lista de mensagens. Como elementos posicionados de forma absoluta dentro de um contêiner com rolagem rolam junto com o conteúdo (não ficam fixos na tela), o papel de parede desaparecia conforme o atendente rolava a conversa, deixando só a cor de fundo sólida.
+  - Corrigido movendo o papel de parede (cor de fundo + `::before` com o doodle) para um `<div>` wrapper estático (sem rolagem, `overflow-hidden`) que envolve o `<MessageList>`; a lista de mensagens agora rola de forma independente (`absolute inset-0 overflow-y-auto`) por cima do papel de parede, que permanece fixo — mesmo comportamento visual do WhatsApp Web real.
+  - Opacidade do papel de parede em modo escuro reduzida de `100%` para `8%`, alinhada ao padrão real do WhatsApp Web (contraste suave/discreto, não um padrão em opacidade máxima).
+
+---
+
 ## [4.18.0-wa.2] - 2026-09-18
 
 ### 🐛 Corrigido (Fixed)
