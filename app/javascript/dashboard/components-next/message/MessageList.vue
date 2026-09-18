@@ -166,7 +166,7 @@ const getInReplyToMessage = parentMessage => {
 </script>
 
 <template>
-  <ul class="relative px-4 sm:px-12 py-3 min-h-full [&>*]:relative [&>*]:z-10">
+  <ul class="px-4 sm:px-12 py-3 min-h-full [&>*]:relative [&>*]:z-10">
     <slot name="beforeAll" />
     <template v-for="(message, index) in allMessages" :key="message.id">
       <slot

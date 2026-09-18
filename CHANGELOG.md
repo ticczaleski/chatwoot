@@ -7,6 +7,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.18.0-wa.4] - 2026-09-18
+
+### 🐛 Corrigido (Fixed)
+- **Rolagem da conversa quebrada (regressão da 4.18.0-wa.3):**
+  - A correção do papel de parede (4.18.0-wa.3) passou a controlar a altura do `<ul>` da lista de mensagens via `absolute inset-0` (aplicado pelo componente pai), mas o próprio `<ul>` ainda tinha a classe `relative` fixada em `MessageList.vue` — como as duas definem `position` no mesmo elemento, o Tailwind aplicava `relative` por cima de `absolute` (ordem das utilities no CSS gerado, não a ordem no atributo `class`), fazendo o `<ul>` perder a altura/posicionamento que a rolagem interna dependia. A barra de rolagem sumia e não era possível rolar a conversa.
+  - Corrigido removendo o `relative` redundante de `MessageList.vue` (não é mais necessário ali — o papel de parede que precisava dele já foi movido para o wrapper estático na 4.18.0-wa.3).
+
+---
+
 ## [4.18.0-wa.3] - 2026-09-18
 
 ### 🐛 Corrigido (Fixed)
