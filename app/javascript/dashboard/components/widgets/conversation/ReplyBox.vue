@@ -1338,7 +1338,7 @@ export default {
 
 <template>
   <ReplyBoxBanner :message="message" :is-on-private-note="isOnPrivateNote" />
-  <div class="reply-box" :class="replyBoxClass">
+  <div class="reply-box shrink-0" :class="replyBoxClass">
     <ReplyTopPanel
       :mode="replyType"
       :conversation-id="conversationId"
@@ -1573,7 +1573,6 @@ export default {
 
 .reply-box {
   @apply relative mb-2 mx-2 border border-wa-border dark:border-wa-border-dark rounded-lg bg-white dark:bg-wa-panel-dark;
-  min-height: 5.5rem;
 
   &.is-private {
     @apply bg-wa-bubble-private dark:bg-amber-950 border border-amber-300 dark:border-amber-800;
@@ -1586,7 +1585,6 @@ export default {
 
 .reply-box__top {
   @apply relative py-0 px-3 -mt-px;
-  min-height: 2.5rem;
 }
 
 .emoji-dialog {

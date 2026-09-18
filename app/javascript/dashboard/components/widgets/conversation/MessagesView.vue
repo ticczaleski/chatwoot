@@ -554,7 +554,7 @@ export default {
       </template>
     </MessageList>
     <div
-      class="flex relative flex-col bg-wa-panel dark:bg-wa-panel-dark border-t border-wa-border dark:border-wa-border-dark"
+      class="flex relative flex-col shrink-0 bg-wa-panel dark:bg-wa-panel-dark border-t border-wa-border dark:border-wa-border-dark"
     >
       <div
         v-if="isAnyoneTyping"
