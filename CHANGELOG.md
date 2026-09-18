@@ -36,6 +36,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
   - `Frontend Lint & Test` (`frontend-fe.yml`): Configurado para executar o Vitest seletivamente (`vitest related`) apenas sobre os arquivos `.js` / `.vue` modificados no commit, reduzindo o tempo de teste de ~6 minutos para menos de 30 segundos.
   - `Run Chatwoot CE spec` (`run_foss_spec.yml`): Desativada a execução automática em todo push/PR que consumia 25 minutos de runner; transformado em acionamento manual sob demanda (`workflow_dispatch`).
   - Removidos workflows redundantes do upstream (`test_docker_build.yml`, `logging_percentage_check.yml`, `run_mfa_spec.yml`) que queimavam mais de 30 minutos em builds duplicados.
+- **Tags de Versão Automáticas nas Imagens Docker (`docker-build.yml`):**
+  - O pipeline de build e push agora gera automaticamente tags de versão ricas no Docker Hub (`ticczaleski/chatwoot`), permitindo fixar versões estáveis em stacks de produção (`chatwoot-ti.yml`):
+    - `latest`: Mantida para deploys automáticos da branch `develop`.
+    - `4.18.0`: Versão base extraída de `package.json`.
+    - `4.18.0-wa`: Identificador da edição WhatsApp Web.
+    - `4.18.0-wa.2`: Tag de release extraída diretamente de `CHANGELOG.md`.
+    - Tags SemVer e git tags (`v*`, `*.*.*`, `*.*.*-*`).
+    - Input de tag customizada sob demanda via `workflow_dispatch`.
 
 ---
 

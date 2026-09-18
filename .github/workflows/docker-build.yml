@@ -9,8 +9,16 @@ on:
       - 'docs/**'
       - '.github/workflows/sync-upstream.yml'
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+-wa'
+      - 'v*'
+      - '*.*.*'
+      - '*.*.*-*'
+      - '[0-9]+.*'
   workflow_dispatch:
+    inputs:
+      custom_tag:
+        description: 'Tag customizada para a imagem Docker (ex: 4.18.0-wa.2)'
+        required: false
+        type: string
 
 concurrency:
   group: docker-build-${{ github.ref }}
@@ -29,6 +37,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -39,15 +49,34 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Extract app version
+        id: app_version
+        run: |
+          BASE_VERSION=$(jq -r '.version // "4.18.0"' package.json)
+          CHANGELOG_VERSION=$(grep -m 1 -oE '\[[0-9]+\.[0-9]+\.[0-9]+(-wa(\.[0-9]+)?)?\]' CHANGELOG.md | tr -d '[]' || true)
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "changelog_version=${CHANGELOG_VERSION:-$BASE_VERSION-wa}" >> "$GITHUB_OUTPUT"
+          echo "Base version: ${BASE_VERSION}"
+          echo "Changelog version: ${CHANGELOG_VERSION}"
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=${{ steps.app_version.outputs.base_version }},enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=${{ steps.app_version.outputs.base_version }}-wa,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=${{ steps.app_version.outputs.changelog_version }},enable=${{ github.ref == 'refs/heads/develop' }}
+            type=ref,event=tag
+            type=match,pattern=v(.*),group=1
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
-            type=match,pattern=(\d+\.\d+\.\d+-wa),group=1
+            type=raw,value=${{ inputs.custom_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.custom_tag != '' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
