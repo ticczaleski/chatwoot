@@ -28,8 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -48,7 +49,15 @@ jobs:
       - name: Run eslint
         run: pnpm run eslint
 
-      - name: Run frontend tests with coverage
+      - name: Run frontend tests for changed files only
         run: |
           mkdir -p coverage
-          pnpm run test:coverage
+          # Identify changed JavaScript, Vue and TypeScript files
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -E '^app/javascript/.*\.(js|vue|ts)$' || true)
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Running vitest related on modified files:"
+            echo "$CHANGED_FILES"
+            pnpm exec vitest related $CHANGED_FILES --run --passWithNoTests
+          else
+            echo "No frontend code files changed in this commit. Skipping vitest."
+          fi

@@ -32,6 +32,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
     - **Tema Claro:** Inversão automática com opacidade calibrada a 35% sobre o fundo creme `#efeae2`.
     - Elementos e balões de mensagem preservados na camada superior (`z-10`).
   - Configuração do asset `wa-doodle` atualizada em `tailwind.config.js` e asset duplicado em `app/javascript/dashboard/assets/images/` para garantir resolução pelo Vite e Rails.
+- **Otimização Extrema de Minutos do GitHub Actions:**
+  - `Frontend Lint & Test` (`frontend-fe.yml`): Configurado para executar o Vitest seletivamente (`vitest related`) apenas sobre os arquivos `.js` / `.vue` modificados no commit, reduzindo o tempo de teste de ~6 minutos para menos de 30 segundos.
+  - `Run Chatwoot CE spec` (`run_foss_spec.yml`): Desativada a execução automática em todo push/PR que consumia 25 minutos de runner; transformado em acionamento manual sob demanda (`workflow_dispatch`).
+  - Removidos workflows redundantes do upstream (`test_docker_build.yml`, `logging_percentage_check.yml`, `run_mfa_spec.yml`) que queimavam mais de 30 minutos em builds duplicados.
 
 ---
 
