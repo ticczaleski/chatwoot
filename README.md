@@ -3,7 +3,44 @@
 
 ___
 
-# Chatwoot
+# Chatwoot — WhatsApp Web Edition (CC Zaleski Fork)
+
+> **Fork personalizado do Chatwoot** com layout e experiência visual inspirados no **WhatsApp Web**, reduzindo a resistência operacional de setores internos e equipes na transição para o atendimento centralizado corporativo.
+
+<p>
+  <a href="https://github.com/ticczaleski/chatwoot/actions/workflows/docker-build.yml"><img src="https://github.com/ticczaleski/chatwoot/actions/workflows/docker-build.yml/badge.svg?branch=develop" alt="Build & Push Docker Image"></a>
+  <a href="https://github.com/ticczaleski/chatwoot/actions/workflows/frontend-fe.yml"><img src="https://github.com/ticczaleski/chatwoot/actions/workflows/frontend-fe.yml/badge.svg?branch=develop" alt="Frontend Lint & Test"></a>
+  <a href="https://hub.docker.com/r/ticczaleski/chatwoot"><img src="https://img.shields.io/badge/docker-ticczaleski%2Fchatwoot-00a884?logo=docker&logoColor=white" alt="Docker Hub Image"></a>
+  <a href="https://github.com/chatwoot/chatwoot"><img src="https://img.shields.io/badge/upstream-v4.18.0-blue" alt="Upstream Version"></a>
+</p>
+
+### 📱 Destaques do Fork:
+- 🟢 **Design Fiel ao WhatsApp Web**: Bolhas de conversa com cauda e carimbo de hora interno, padrão de doodle background oficial (`wa-doodle.svg`), lista de conversas com espaçamento e avatares idênticos.
+- ✔️✔️ **Ticks de Confirmação**: Ticks duplos em cinza (entregue) e azul WhatsApp `#53bdeb` (lido).
+- 🔒 **Notas Privadas Corporativas**: Destaque visual suave em tom âmbar sem quebrar o layout.
+- 📱 **Compatibilidade Mobile 100% Preservada**: Nenhuma rota ou controller Rails foi alterado; os aplicativos móveis oficiais para **Android** e **iOS** continuam operando normalmente via API e WebSockets.
+- 🔄 **Sincronização Upstream Sem Perdas**: Pipeline automatizado de checagem semanal para atualizar o fork com novidades do Chatwoot oficial.
+- 📖 **Documentação de Arquitetura**: Veja [FORK.md](./FORK.md) para o guia completo de manutenção e CI/CD.
+
+---
+
+### 🚀 Como Executar em Produção (Docker Compose)
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/ticczaleski/chatwoot.git
+cd chatwoot
+
+# 2. Configure o arquivo de ambiente
+cp .env.example .env
+
+# 3. Inicie a stack com a imagem do fork (ticczaleski/chatwoot:latest)
+docker compose -f docker-compose.production.yaml up -d
+```
+
+---
+
+# Chatwoot (Original Platform)
 
 The modern customer support platform, an open-source alternative to Intercom, Zendesk, Salesforce Service Cloud etc.
 
