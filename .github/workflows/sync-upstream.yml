@@ -1,4 +1,4 @@
-﻿name: Sync with Upstream Chatwoot
+name: Sync with Upstream Chatwoot
 
 on:
   schedule:
@@ -58,7 +58,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: sync/upstream-${{ steps.date.outputs.today }}
           base: develop
-          title: chore(sync): upstream Chatwoot ${{ steps.date.outputs.today }}
+          title: "chore(sync): upstream Chatwoot ${{ steps.date.outputs.today }}"
           body: |
             ## Upstream sync
 
@@ -67,11 +67,11 @@ jobs:
             **${{ steps.check.outputs.behind }} commits** are available from upstream.
 
             ### Review checklist
-            - [ ] Review conflicts in 	ailwind.config.js
+            - [ ] Review conflicts in tailwind.config.js
             - [ ] Review conflicts in message bubble components (Base.vue, MessageList.vue)
             - [ ] Review conflicts in ReplyBox.vue / ChatList.vue
             - [ ] Test WhatsApp UI theme is still intact after merge
             - [ ] Confirm mobile API endpoints are unaffected
 
-            > **After merging, tag a new release:** git tag X.Y.Z-wa && git push origin --tags
+            > **After merging, tag a new release:** `git tag X.Y.Z-wa && git push origin --tags`
           labels: dependencies,upstream-sync
