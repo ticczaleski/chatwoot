@@ -499,60 +499,64 @@ export default {
         :banner-message="$t('CONVERSATION.OLD_INSTAGRAM_INBOX_REPLY_BANNER')"
       />
     </div>
-    <MessageList
-      ref="conversationPanelRef"
-      class="conversation-panel flex-shrink flex-grow basis-px flex flex-col overflow-y-auto relative h-full m-0 pb-4"
-      :current-user-id="currentUserId"
-      :first-unread-id="unReadMessages[0]?.id"
-      :is-an-email-channel="isAnEmailChannel"
-      :inbox-supports-reply-to="inboxSupportsReplyTo"
-      :messages="getMessages"
-      @retry="handleMessageRetry"
+    <div
+      class="relative flex-shrink flex-grow basis-px overflow-hidden bg-wa-bg dark:bg-wa-chat-bg-dark before:pointer-events-none before:absolute before:inset-0 before:bg-wa-doodle before:bg-repeat before:bg-[length:420px_auto] before:opacity-35 dark:before:opacity-[0.08] before:invert dark:before:filter-none"
     >
-      <template #beforeAll>
-        <transition name="slide-up">
-          <!-- eslint-disable-next-line vue/require-toggle-inside-transition -->
+      <MessageList
+        ref="conversationPanelRef"
+        class="conversation-panel absolute inset-0 flex flex-col overflow-y-auto m-0 pb-4"
+        :current-user-id="currentUserId"
+        :first-unread-id="unReadMessages[0]?.id"
+        :is-an-email-channel="isAnEmailChannel"
+        :inbox-supports-reply-to="inboxSupportsReplyTo"
+        :messages="getMessages"
+        @retry="handleMessageRetry"
+      >
+        <template #beforeAll>
+          <transition name="slide-up">
+            <!-- eslint-disable-next-line vue/require-toggle-inside-transition -->
+            <li
+              class="min-h-[4rem] flex flex-shrink-0 flex-grow-0 items-center flex-auto justify-center max-w-full mt-0 mr-0 mb-1 ml-0 relative first:mt-auto last:mb-0"
+            >
+              <Spinner v-if="shouldShowSpinner" class="text-n-brand" />
+            </li>
+          </transition>
+          <ContactConversationLink
+            v-if="olderConversation && listLoadingStatus"
+            direction="older"
+            :conversation="olderConversation"
+            :to="buildConversationPath(olderConversation.id)"
+          />
+          <ReferralBubble v-if="referralData" :referral="referralData" />
+        </template>
+        <template #unreadBadge>
           <li
-            class="min-h-[4rem] flex flex-shrink-0 flex-grow-0 items-center flex-auto justify-center max-w-full mt-0 mr-0 mb-1 ml-0 relative first:mt-auto last:mb-0"
+            v-show="unreadMessageCount != 0"
+            class="list-none flex justify-center items-center"
           >
-            <Spinner v-if="shouldShowSpinner" class="text-n-brand" />
+            <span
+              class="shadow-lg rounded-full bg-n-brand text-white text-xs font-medium my-2.5 mx-auto px-2.5 py-1.5"
+            >
+              {{ unreadMessageLabel }}
+            </span>
           </li>
-        </transition>
-        <ContactConversationLink
-          v-if="olderConversation && listLoadingStatus"
-          direction="older"
-          :conversation="olderConversation"
-          :to="buildConversationPath(olderConversation.id)"
-        />
-        <ReferralBubble v-if="referralData" :referral="referralData" />
-      </template>
-      <template #unreadBadge>
-        <li
-          v-show="unreadMessageCount != 0"
-          class="list-none flex justify-center items-center"
-        >
-          <span
-            class="shadow-lg rounded-full bg-n-brand text-white text-xs font-medium my-2.5 mx-auto px-2.5 py-1.5"
-          >
-            {{ unreadMessageLabel }}
-          </span>
-        </li>
-      </template>
-      <template #after>
-        <ConversationLabelSuggestion
-          v-if="shouldShowLabelSuggestions"
-          :suggested-labels="labelSuggestions"
-          :chat-labels="currentChat.labels"
-          :conversation-id="currentChat.id"
-        />
-        <ContactConversationLink
-          v-if="newerConversation"
-          direction="newer"
-          :conversation="newerConversation"
-          :to="buildConversationPath(newerConversation.id)"
-        />
-      </template>
-    </MessageList>
+        </template>
+        <template #after>
+          <ConversationLabelSuggestion
+            v-if="shouldShowLabelSuggestions"
+            :suggested-labels="labelSuggestions"
+            :chat-labels="currentChat.labels"
+            :conversation-id="currentChat.id"
+          />
+          <ContactConversationLink
+            v-if="newerConversation"
+            direction="newer"
+            :conversation="newerConversation"
+            :to="buildConversationPath(newerConversation.id)"
+          />
+        </template>
+      </MessageList>
+    </div>
     <div
       class="flex relative flex-col shrink-0 bg-wa-panel dark:bg-wa-panel-dark border-t border-wa-border dark:border-wa-border-dark"
     >
