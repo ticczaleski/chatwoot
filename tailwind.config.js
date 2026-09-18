@@ -39,6 +39,9 @@ const tailwindConfig = {
   ],
   theme: {
     extend: {
+      backgroundImage: {
+        'wa-doodle': "url('/dashboard/images/wa-doodle.svg')",
+      },
       fontFamily: {
         sans: defaultSansFonts,
         inter: ['Inter', ...defaultSansFonts],
@@ -216,6 +219,33 @@ const tailwindConfig = {
       current: 'currentColor',
       ...colors,
       body: slateDark.slate7,
+      wa: {
+        bg: '#efeae2',
+        panel: '#f0f2f5',
+        'panel-dark': '#202c33',
+        'chat-bg-dark': '#0b141a',
+        'bubble-in': '#ffffff',
+        'bubble-in-dark': '#202c33',
+        'bubble-out': '#d9fdd3',
+        'bubble-out-dark': '#005c4b',
+        'bubble-private': '#fef3c7',
+        'bubble-private-text': '#78350f',
+        teal: '#00a884',
+        'teal-hover': '#008f6f',
+        green: '#25d366',
+        'tick-blue': '#53bdeb',
+        'tick-gray': '#8696a0',
+        text: '#111b21',
+        'text-muted': '#667781',
+        'text-dark': '#e9edef',
+        'text-muted-dark': '#8696a0',
+        border: '#e9edef',
+        'border-dark': '#222d34',
+        hover: '#f5f6f6',
+        'hover-dark': '#202c33',
+        active: '#f0f2f5',
+        'active-dark': '#2a3942',
+      },
     },
     keyframes: {
       ...defaultTheme.keyframes,

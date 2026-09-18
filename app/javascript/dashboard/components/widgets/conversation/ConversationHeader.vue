@@ -110,10 +110,10 @@ const copyConversationId = async () => {
 <template>
   <div
     ref="conversationHeader"
-    class="flex flex-col gap-3 items-center justify-between flex-1 w-full min-w-0 xl:flex-row px-3 pt-3 pb-2 h-24 xl:h-12"
+    class="flex items-center justify-between flex-1 w-full min-w-0 px-4 h-[59px] bg-wa-panel dark:bg-wa-panel-dark border-b border-wa-border dark:border-wa-border-dark"
   >
     <div
-      class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1"
+      class="flex items-center justify-start w-full xl:w-auto max-w-full min-w-0 xl:flex-1 cursor-pointer"
     >
       <BackButton
         v-if="showBackButton"
@@ -123,14 +123,15 @@ const copyConversationId = async () => {
       <Avatar
         :name="currentContact.name"
         :src="currentContact.thumbnail"
-        :size="32"
+        :size="40"
         :status="currentContact.availability_status"
         hide-offline-status
+        rounded-full
       />
-      <div class="flex flex-col items-start min-w-0 ms-2 overflow-hidden">
+      <div class="flex flex-col items-start min-w-0 ms-3 overflow-hidden">
         <div class="flex flex-row items-center max-w-full gap-1 p-0 m-0">
           <span
-            class="text-sm font-medium truncate leading-tight text-n-slate-12"
+            class="text-[16px] font-normal truncate leading-tight text-wa-text dark:text-wa-text-dark"
           >
             {{ currentContact.name }}
           </span>

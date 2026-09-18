@@ -34,8 +34,8 @@ const isCaptainMessage = computed(
 
 const metaColorClass = computed(() =>
   variant.value === MESSAGE_VARIANTS.PRIVATE
-    ? 'text-n-amber-12/50'
-    : 'text-n-slate-11'
+    ? 'text-amber-800/80 dark:text-amber-200/80'
+    : 'text-wa-text-muted dark:text-wa-text-muted-dark'
 );
 
 const emailMetaClass = computed(() =>
@@ -43,24 +43,29 @@ const emailMetaClass = computed(() =>
 );
 
 const varaintBaseMap = {
-  [MESSAGE_VARIANTS.AGENT]: 'bg-n-solid-blue text-n-slate-12',
+  [MESSAGE_VARIANTS.AGENT]:
+    'bg-wa-bubble-out dark:bg-wa-bubble-out-dark text-wa-text dark:text-wa-text-dark shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]',
   [MESSAGE_VARIANTS.PRIVATE]:
-    'bg-n-solid-amber text-n-amber-12 [&_.prosemirror-mention-node]:font-semibold',
-  [MESSAGE_VARIANTS.USER]: 'bg-n-slate-4 text-n-slate-12',
-  [MESSAGE_VARIANTS.ACTIVITY]: 'bg-n-alpha-1 text-n-slate-11 text-sm',
-  [MESSAGE_VARIANTS.BOT]: 'bg-n-solid-iris text-n-slate-12',
-  [MESSAGE_VARIANTS.TEMPLATE]: 'bg-n-solid-iris text-n-slate-12',
+    'bg-wa-bubble-private dark:bg-amber-950 text-wa-bubble-private-text dark:text-amber-200 border border-amber-300 dark:border-amber-800 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] [&_.prosemirror-mention-node]:font-semibold',
+  [MESSAGE_VARIANTS.USER]:
+    'bg-wa-bubble-in dark:bg-wa-bubble-in-dark text-wa-text dark:text-wa-text-dark shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]',
+  [MESSAGE_VARIANTS.ACTIVITY]:
+    'bg-white dark:bg-wa-panel-dark text-wa-text-muted dark:text-wa-text-muted-dark text-xs shadow-sm uppercase tracking-wider px-3 py-1.5 rounded-lg border border-wa-border/50 dark:border-wa-border-dark/50',
+  [MESSAGE_VARIANTS.BOT]:
+    'bg-wa-bubble-out dark:bg-wa-bubble-out-dark text-wa-text dark:text-wa-text-dark shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]',
+  [MESSAGE_VARIANTS.TEMPLATE]:
+    'bg-wa-bubble-out dark:bg-wa-bubble-out-dark text-wa-text dark:text-wa-text-dark shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]',
   [MESSAGE_VARIANTS.ERROR]: 'bg-n-ruby-4 text-n-ruby-12',
   [MESSAGE_VARIANTS.EMAIL]: 'w-full',
   [MESSAGE_VARIANTS.UNSUPPORTED]:
-    'bg-n-solid-amber/70 border border-dashed border-n-amber-12 text-n-amber-12',
+    'bg-wa-bubble-private dark:bg-amber-950 border border-dashed border-amber-500 text-wa-bubble-private-text',
 };
 
 const orientationMap = {
   [ORIENTATION.LEFT]:
-    'left-bubble rounded-xl ltr:rounded-bl-sm rtl:rounded-br-sm',
+    'left-bubble rounded-lg ltr:rounded-tl-none rtl:rounded-tr-none',
   [ORIENTATION.RIGHT]:
-    'right-bubble rounded-xl ltr:rounded-br-sm rtl:rounded-bl-sm',
+    'right-bubble rounded-lg ltr:rounded-tr-none rtl:rounded-tl-none',
   [ORIENTATION.CENTER]: 'rounded-md',
 };
 
@@ -118,17 +123,17 @@ const replyToPreview = computed(() => {
 
 <template>
   <div
-    class="text-sm min-w-0"
+    class="text-[14.2px] leading-[19px] min-w-0"
     :class="[
       messageClass,
       {
-        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
+        'max-w-[75%] sm:max-w-[65%]': variant !== MESSAGE_VARIANTS.EMAIL,
       },
     ]"
   >
     <div
       v-if="inReplyTo"
-      class="p-2 -mx-1 mb-2 rounded-lg cursor-pointer bg-n-alpha-black1"
+      class="p-2 -mx-1 mb-2 rounded-md cursor-pointer bg-black/5 dark:bg-white/5 border-l-4 border-wa-teal"
       @click="scrollToMessage"
     >
       <div
@@ -149,8 +154,8 @@ const replyToPreview = computed(() => {
       </CaptainGenerationDetails>
       <MessageMeta
         v-else
-        :class="[flexOrientationClass, emailMetaClass, metaColorClass]"
-        class="mt-2"
+        :class="[emailMetaClass, metaColorClass]"
+        class="mt-1 text-[11px] justify-end"
       />
     </template>
   </div>

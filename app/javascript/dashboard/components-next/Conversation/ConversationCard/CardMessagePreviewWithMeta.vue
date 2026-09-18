@@ -70,9 +70,9 @@ defineExpose({
 
       <div
         v-if="unreadMessagesCount > 0"
-        class="inline-flex items-center justify-center flex-shrink-0 rounded-full size-5 bg-n-brand"
+        class="inline-flex items-center justify-center flex-shrink-0 rounded-full size-5 bg-wa-green"
       >
-        <span class="text-xs font-semibold text-white">
+        <span class="text-xs font-bold text-white">
           {{ unreadMessagesCount }}
         </span>
       </div>

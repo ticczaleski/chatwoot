@@ -95,30 +95,31 @@ const onCardClick = e => {
 <template>
   <div
     role="button"
-    class="flex w-full gap-3 px-3 py-4 transition-all duration-300 ease-in-out cursor-pointer"
+    class="flex w-full gap-3 px-3 py-3 transition-colors duration-150 ease-in-out cursor-pointer hover:bg-wa-hover dark:hover:bg-wa-hover-dark border-b border-wa-border/60 dark:border-wa-border-dark/60"
     @click="onCardClick"
   >
     <Avatar
       :name="currentContactName"
       :src="currentContactThumbnail"
-      :size="24"
+      :size="48"
       :status="currentContactStatus"
       rounded-full
+      class="flex-shrink-0"
     />
-    <div class="flex flex-col w-full gap-1 min-w-0">
+    <div class="flex flex-col w-full gap-0.5 min-w-0 justify-center">
       <div class="flex items-center justify-between h-6 gap-2">
-        <h4 class="text-base font-medium truncate text-n-slate-12">
+        <h4 class="text-[16px] font-normal truncate text-wa-text dark:text-wa-text-dark">
           {{ currentContactName }}
         </h4>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 flex-shrink-0">
           <CardPriorityIcon :priority="conversation.priority || null" />
           <div
             v-tooltip.left="inboxName"
-            class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-5"
+            class="flex items-center justify-center flex-shrink-0 rounded-full bg-n-alpha-2 size-4"
           >
             <Icon
               :icon="inboxIcon"
-              class="flex-shrink-0 text-n-slate-11 size-3"
+              class="flex-shrink-0 text-wa-text-muted dark:text-wa-text-muted-dark size-2.5"
             />
           </div>
           <span
@@ -126,7 +127,7 @@ const onCardClick = e => {
               content: exactTimestamp(conversation?.timestamp),
               delay: { show: 500, hide: 0 },
             }"
-            class="text-sm text-n-slate-10"
+            class="text-xs text-wa-text-muted dark:text-wa-text-muted-dark"
           >
             {{ lastActivityAt }}
           </span>

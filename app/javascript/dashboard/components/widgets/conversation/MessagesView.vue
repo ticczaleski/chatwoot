@@ -553,7 +553,9 @@ export default {
         />
       </template>
     </MessageList>
-    <div class="flex relative flex-col bg-n-surface-1">
+    <div
+      class="flex relative flex-col bg-wa-panel dark:bg-wa-panel-dark border-t border-wa-border dark:border-wa-border-dark"
+    >
       <div
         v-if="isAnyoneTyping"
         class="absolute flex items-center w-full h-0 -top-7"

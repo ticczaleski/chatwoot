@@ -1569,10 +1569,10 @@ export default {
 }
 
 .reply-box {
-  @apply relative mb-2 mx-2 border border-n-weak rounded-xl bg-n-solid-1;
+  @apply relative mb-2 mx-2 border border-wa-border dark:border-wa-border-dark rounded-lg bg-white dark:bg-wa-panel-dark;
 
   &.is-private {
-    @apply bg-n-solid-amber dark:border-n-amber-3/10 border-n-amber-12/5;
+    @apply bg-wa-bubble-private dark:bg-amber-950 border border-amber-300 dark:border-amber-800;
   }
 }
 

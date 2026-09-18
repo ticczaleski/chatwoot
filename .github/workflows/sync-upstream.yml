@@ -1,0 +1,74 @@
+﻿name: Sync with Upstream Chatwoot
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Check for upstream updates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/chatwoot/chatwoot.git
+
+      - name: Fetch upstream
+        run: git fetch upstream develop --no-tags
+
+      - name: Check for new upstream commits
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/develop)
+          echo "behind=${BEHIND}" >> $GITHUB_OUTPUT
+          echo "Commits behind upstream: ${BEHIND}"
+
+      - name: Create sync branch
+        if: steps.check.outputs.behind != '0'
+        run: |
+          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          git checkout -b "${BRANCH}"
+          git merge upstream/develop --no-edit --strategy-option=ours || true
+          git push origin "${BRANCH}"
+          echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+      - name: Create Pull Request
+        if: steps.check.outputs.behind != '0'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.BRANCH }}
+          base: develop
+          title: "chore: sync upstream Chatwoot $(date +%Y-%m-%d)"
+          body: |
+            ## Upstream sync
+
+            This PR brings in the latest changes from [chatwoot/chatwoot](https://github.com/chatwoot/chatwoot) develop branch.
+
+            **${{ steps.check.outputs.behind }} commits** are available from upstream.
+
+            ### Review checklist
+            - [ ] Review conflicts in 	ailwind.config.js
+            - [ ] Review conflicts in message bubble components
+            - [ ] Review conflicts in ReplyBox.vue / ChatList.vue
+            - [ ] Test WhatsApp UI theme is still intact after merge
+            - [ ] Confirm mobile API endpoints are unaffected
+
+            > **After merging, tag a new release:** git tag X.Y.Z-wa && git push origin --tags
+          labels: dependencies,upstream-sync
