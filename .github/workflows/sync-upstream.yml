@@ -39,23 +39,26 @@ jobs:
           echo "behind=${BEHIND}" >> $GITHUB_OUTPUT
           echo "Commits behind upstream: ${BEHIND}"
 
+      - name: Set sync date
+        id: date
+        run: echo "today=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
       - name: Create sync branch
         if: steps.check.outputs.behind != '0'
         run: |
-          BRANCH="sync/upstream-$(date +%Y%m%d)"
+          BRANCH="sync/upstream-${{ steps.date.outputs.today }}"
           git checkout -b "${BRANCH}"
           git merge upstream/develop --no-edit --strategy-option=ours || true
           git push origin "${BRANCH}"
-          echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
 
       - name: Create Pull Request
         if: steps.check.outputs.behind != '0'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.BRANCH }}
+          branch: sync/upstream-${{ steps.date.outputs.today }}
           base: develop
-          title: "chore: sync upstream Chatwoot $(date +%Y-%m-%d)"
+          title: chore(sync): upstream Chatwoot ${{ steps.date.outputs.today }}
           body: |
             ## Upstream sync
 
@@ -65,7 +68,7 @@ jobs:
 
             ### Review checklist
             - [ ] Review conflicts in 	ailwind.config.js
-            - [ ] Review conflicts in message bubble components
+            - [ ] Review conflicts in message bubble components (Base.vue, MessageList.vue)
             - [ ] Review conflicts in ReplyBox.vue / ChatList.vue
             - [ ] Test WhatsApp UI theme is still intact after merge
             - [ ] Confirm mobile API endpoints are unaffected
