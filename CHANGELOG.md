@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.19.0-wa.1] - 2026-09-19
+
+### ✨ Adicionado (Added)
+- **Reações do WhatsApp (Evolution API), atrás de capability por inbox:**
+  - Nova tabela independente `message_reactions` (sem enum novo em `Message`, sem coluna nova em `messages`): uma reação por `(mensagem, actor)`, substituição de emoji na mesma linha, cascata de exclusão com a mensagem-pai. Nunca cria uma mensagem de chat nem altera contagem de mensagens, não lidas, `last_activity_at`, SLA ou dispara automações de `message_created`.
+  - `PUT /api/v1/accounts/:account_id/conversations/:conversation_id/messages/:id/reaction` — emoji vazio remove a reação. Reações originadas pelo provider (`message_type: 'incoming'`) são atribuídas ao contato da conversa e exigem a capability `reactions` no inbox.
+  - Eventos aditivos `message_reaction_created/updated/deleted` via webhook (para a Evolution, condicionado à capability `reactions`) e via ActionCable (para o dashboard, sempre que há reação em qualquer inbox).
+  - Controles de reação no dashboard Web: gatilho por hover/foco/toque-longo com os 6 emojis padrão do WhatsApp, pills agregadas abaixo da mensagem com atualização otimista e reconciliação (sem duplicar pill mesmo se o tempo real chegar antes da resposta HTTP).
+  - Ponte bidirecional com a Evolution API: reação do agente é enviada ao WhatsApp via `reactionMessage`; reação do contato no WhatsApp é aplicada como reação no Chatwoot (nunca mais como mensagem de texto solta com o emoji como conteúdo).
+- **Contrato de capabilities por inbox da Evolution:** `Channel::Api#evolution?` e `#provider_capability?(nome)`, lidos de `additional_attributes.provider`/`provider_capabilities`, validados no modelo (rejeita provider fora da allowlist ou capability desconhecida, sem coerção silenciosa). Habilita `delivery_status`, `quoted_reply` e `reactions` de forma independente por inbox.
+- **Registro de IDs externos para respostas citadas:** `PATCH .../messages/:id` agora aceita `source_id` (só inboxes API, único por inbox, validado por índice único parcial), permitindo que a Evolution registre a chave do WhatsApp de uma mensagem enviada pelo agente — antes disso, citar uma mensagem de saída pelo lado do WhatsApp nunca resolvia o pai.
+
+### 🐛 Corrigido (Fixed)
+- **Papel de parede opaco (substitui o ajuste de opacidade da 4.18.0-wa.5):** o `wa-chat-bg.png` era uma imagem preta opaca; qualquer ajuste de `opacity`/`invert` sobre ela mistura o fundo preto junto com o desenho. Trocado por SVGs transparentes (`wa-doodle.svg`/`wa-doodle-dark.svg`) com a opacidade já embutida nos próprios traços — resolve definitivamente o problema nos dois temas sem depender de ajuste fino de opacidade em runtime.
+- **Envio duplicado em reentrega de webhook (Evolution API):** removido um `sleep` cego de 500ms que mascarava (sem corrigir) uma condição de corrida a custo de latência em todo webhook. Adicionada uma claim atômica de idempotência por `(instância, ID da mensagem no Chatwoot, operação)`, evitando reenviar a mesma mensagem ao WhatsApp em caso de reentrega.
+- **Falha de envio virava nota privada em vez de marcar a mensagem como falha:** substituído por uma chamada ao endpoint de atualização de status que já existe no Chatwoot (`status: failed`, `external_error`), mantendo a mensagem original re-tentável em vez de criar uma segunda mensagem solta na conversa.
+
+Ver `docs/evolution-api-compatibility.md` para a matriz de versões, o modelo de capabilities, os checklists de verificação manual (matriz de mensagens ponta a ponta, smoke test mobile, carga/ordenação) e o procedimento de habilitação em estágios e rollback.
+
+---
+
 ## [4.18.0-wa.5] - 2026-09-18
 
 ### 🐛 Corrigido (Fixed)
