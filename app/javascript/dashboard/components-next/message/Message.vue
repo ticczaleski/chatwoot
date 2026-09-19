@@ -2,8 +2,8 @@
 import { onMounted, computed, ref, toRefs } from 'vue';
 import { useTimeoutFn } from '@vueuse/core';
 import { provideMessageContext } from './provider.js';
-import { useTrack } from 'dashboard/composables';
-import { useMapGetter } from 'dashboard/composables/store';
+import { useTrack, useAlert } from 'dashboard/composables';
+import { useMapGetter, useStore } from 'dashboard/composables/store';
 import { emitter } from 'shared/helpers/mitt';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
@@ -45,6 +45,8 @@ import WhatsappFlowResponseBubble from './bubbles/WhatsappFlowResponse.vue';
 import WhatsappReferral from './bubbles/Text/WhatsappReferral.vue';
 
 import MessageError from './MessageError.vue';
+import MessageActions from './MessageActions.vue';
+import MessageReactions from './MessageReactions.vue';
 import ContextMenu from 'dashboard/modules/conversations/components/MessageContextMenu.vue';
 import { useBranding } from 'shared/composables/useBranding';
 
@@ -133,6 +135,9 @@ const props = defineProps({
   inReplyTo: { type: Object, default: null }, // eslint-disable-line vue/no-unused-properties
   isEmailInbox: { type: Boolean, default: false },
   private: { type: Boolean, default: false },
+  // Optional and additive: absent/empty on any message a provider or older client doesn't
+  // report reactions for, so no capability check is needed here to render safely.
+  reactions: { type: Array, default: () => [] },
   additionalAttributes: { type: Object, default: () => ({}) }, // eslint-disable-line vue/no-unused-properties
   sender: { type: Object, default: null },
   senderId: { type: Number, default: null },
@@ -471,6 +476,20 @@ function handleReplyTo() {
   emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, props);
 }
 
+const store = useStore();
+
+function handleToggleReaction(emoji) {
+  store
+    .dispatch('toggleMessageReaction', {
+      conversationId: props.conversationId,
+      messageId: props.id,
+      emoji,
+    })
+    .catch(() => {
+      useAlert(t('CONVERSATION.REACTIONS.ERROR'));
+    });
+}
+
 const avatarInfo = computed(() => {
   if (props.contentAttributes?.externalEcho) {
     const { name, avatar_url, channel_type, medium, voice_enabled } =
@@ -549,7 +568,7 @@ provideMessageContext({
   <div
     v-if="shouldRenderMessage"
     :id="`message${props.id}`"
-    class="flex w-full mb-2 message-bubble-container"
+    class="flex w-full mb-2 message-bubble-container group"
     :data-message-id="props.id"
     :class="[
       flexOrientationClass,
@@ -596,7 +615,20 @@ provideMessageContext({
           v-if="shouldShowWhatsappReferral"
           :referral="contentAttributes.referral"
         />
-        <Component :is="componentToRender" />
+        <div
+          class="flex flex-col min-w-0 gap-1"
+          :class="{
+            'items-end': orientation === ORIENTATION.RIGHT,
+            'items-start': orientation === ORIENTATION.LEFT,
+          }"
+        >
+          <Component :is="componentToRender" />
+          <MessageReactions
+            :reactions="reactions"
+            @toggle="handleToggleReaction"
+          />
+        </div>
+        <MessageActions v-if="isBubble" @toggle="handleToggleReaction" />
       </div>
       <MessageError
         v-if="contentAttributes.externalError"

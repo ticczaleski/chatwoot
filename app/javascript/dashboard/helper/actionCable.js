@@ -39,6 +39,9 @@ class ActionCableConnector extends BaseActionCableConnector {
     this.events = {
       'message.created': this.onMessageCreated,
       'message.updated': this.onMessageUpdated,
+      'message_reaction.created': this.onMessageReactionChanged,
+      'message_reaction.updated': this.onMessageReactionChanged,
+      'message_reaction.deleted': this.onMessageReactionChanged,
       'conversation.created': this.onConversationCreated,
       'conversation.status_changed': this.onStatusChange,
       'user:logout': this.onLogout,
@@ -86,6 +89,17 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   onMessageUpdated = data => {
     this.app.$store.dispatch('updateMessage', data);
+  };
+
+  // Created/updated/deleted all carry the same full-replace summary for the message, so a
+  // single handler covers all three — an older client that doesn't recognize this event name
+  // simply never registers a handler for it and ignores it.
+  onMessageReactionChanged = data => {
+    this.app.$store.dispatch('updateMessageReactions', {
+      conversationId: data.conversation_id,
+      messageId: data.message_id,
+      reactions: data.reactions,
+    });
   };
 
   onPresenceUpdate = data => {

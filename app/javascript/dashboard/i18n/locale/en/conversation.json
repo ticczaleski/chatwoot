@@ -394,7 +394,14 @@
           "outdated_information": "Outdated information",
           "other": "Other"
         }
-      }
+      },
+      "REACT": "React"
+    },
+    "REACTIONS": {
+      "ADD": "Add reaction",
+      "REMOVE": "Remove reaction",
+      "REACTED_WITH": "Reacted with {emoji}",
+      "ERROR": "Could not update reaction. Please try again."
     },
     "SIDEBAR": {
       "CONTACT": "Contact",
