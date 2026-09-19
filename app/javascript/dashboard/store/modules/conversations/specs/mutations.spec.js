@@ -131,4 +131,84 @@ describe('#mutations', () => {
       });
     });
   });
+
+  describe('#UPDATE_MESSAGE_REACTIONS', () => {
+    it('does nothing if conversation is not found', () => {
+      const state = { allConversations: [] };
+      mutations[types.UPDATE_MESSAGE_REACTIONS](state, {
+        conversationId: 1,
+        messageId: 1,
+        reactions: [{ emoji: '👍', count: 1, reacted_by_current_user: true }],
+      });
+      expect(state.allConversations).toEqual([]);
+    });
+
+    it('does nothing if the message is not found in the conversation', () => {
+      const state = {
+        allConversations: [{ id: 1, messages: [{ id: 99 }] }],
+      };
+      mutations[types.UPDATE_MESSAGE_REACTIONS](state, {
+        conversationId: 1,
+        messageId: 1,
+        reactions: [{ emoji: '👍', count: 1, reacted_by_current_user: true }],
+      });
+      expect(state.allConversations[0].messages[0]).toEqual({ id: 99 });
+    });
+
+    it('replaces the reactions array on the matching message only', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            messages: [
+              { id: 1, reactions: [] },
+              {
+                id: 2,
+                reactions: [
+                  { emoji: '😀', count: 1, reacted_by_current_user: false },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      mutations[types.UPDATE_MESSAGE_REACTIONS](state, {
+        conversationId: 1,
+        messageId: 1,
+        reactions: [{ emoji: '👍', count: 1, reacted_by_current_user: true }],
+      });
+      expect(state.allConversations[0].messages[0].reactions).toEqual([
+        { emoji: '👍', count: 1, reacted_by_current_user: true },
+      ]);
+      expect(state.allConversations[0].messages[1].reactions).toEqual([
+        { emoji: '😀', count: 1, reacted_by_current_user: false },
+      ]);
+    });
+
+    it('fully overwrites a previous reactions array rather than merging it', () => {
+      const state = {
+        allConversations: [
+          {
+            id: 1,
+            messages: [
+              {
+                id: 1,
+                reactions: [
+                  { emoji: '👍', count: 1, reacted_by_current_user: true },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      mutations[types.UPDATE_MESSAGE_REACTIONS](state, {
+        conversationId: 1,
+        messageId: 1,
+        reactions: [{ emoji: '👍', count: 2, reacted_by_current_user: true }],
+      });
+      expect(state.allConversations[0].messages[0].reactions).toEqual([
+        { emoji: '👍', count: 2, reacted_by_current_user: true },
+      ]);
+    });
+  });
 });

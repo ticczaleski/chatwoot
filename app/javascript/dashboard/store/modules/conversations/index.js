@@ -361,6 +361,22 @@ export const mutations = {
     message.call = { ...message.call, status: callStatus };
   },
 
+  // Full replace, never append: whichever source (the HTTP response or an ActionCable
+  // event) applies this last simply overwrites the array, so there is no way for an
+  // optimistic update racing a realtime event to produce a duplicate pill.
+  [types.UPDATE_MESSAGE_REACTIONS](
+    _state,
+    { conversationId, messageId, reactions }
+  ) {
+    const chat = getConversationById(_state)(conversationId);
+    if (!chat) return;
+
+    const message = (chat.messages || []).find(m => m.id === messageId);
+    if (!message) return;
+
+    message.reactions = reactions;
+  },
+
   [types.SET_ACTIVE_INBOX](_state, inboxId) {
     _state.currentInbox = inboxId ? parseInt(inboxId, 10) : null;
   },

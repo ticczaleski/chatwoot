@@ -42,6 +42,11 @@ module Events::Types
   REPLY_CREATED = 'reply.created'
   MESSAGE_UPDATED = 'message.updated'
 
+  # message reaction events (state on an existing message, never a chat message)
+  MESSAGE_REACTION_CREATED = 'message_reaction.created'
+  MESSAGE_REACTION_UPDATED = 'message_reaction.updated'
+  MESSAGE_REACTION_DELETED = 'message_reaction.deleted'
+
   # contact events
   CONTACT_CREATED = 'contact.created'
   CONTACT_UPDATED = 'contact.updated'

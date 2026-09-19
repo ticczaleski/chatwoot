@@ -42,6 +42,18 @@ class WebhookListener < BaseListener
     deliver_webhook_payloads(payload, inbox)
   end
 
+  def message_reaction_created(event)
+    deliver_reaction_webhook(event, __method__.to_s)
+  end
+
+  def message_reaction_updated(event)
+    deliver_reaction_webhook(event, __method__.to_s)
+  end
+
+  def message_reaction_deleted(event)
+    deliver_reaction_webhook(event, __method__.to_s)
+  end
+
   def webwidget_triggered(event)
     contact_inbox = event.data[:contact_inbox]
     inbox = contact_inbox.inbox
@@ -130,5 +142,42 @@ class WebhookListener < BaseListener
   def deliver_webhook_payloads(payload, inbox)
     deliver_account_webhooks(payload, inbox.account)
     deliver_api_inbox_webhooks(payload, inbox)
+  end
+
+  # Reactions are state on an existing message, never a chat message: the API-inbox delivery
+  # (the only side Evolution's own webhook_url receives) is restricted to inboxes that have
+  # opted into the 'reactions' provider capability, so a generic API inbox integration that
+  # doesn't understand reactions never receives this event. Account-level webhooks are
+  # unaffected by this gate since they are already opt-in per event name.
+  def deliver_reaction_webhook(event, event_name)
+    reaction = event.data[:message_reaction]
+    # A reaction whose message was deleted in the same request (e.g. the parent message was
+    # destroyed, cascading to this reaction) must be dropped quietly: no message, no unread
+    # change, nothing to notify a provider about.
+    message = reaction.message
+    return if message.blank?
+
+    inbox = message.inbox
+
+    payload = reaction_webhook_payload(reaction, message).merge(event: event_name)
+    deliver_account_webhooks(payload, inbox.account)
+    deliver_api_inbox_webhooks(payload, inbox) if reaction_capable_inbox?(inbox)
+  end
+
+  def reaction_capable_inbox?(inbox)
+    inbox.channel_type == 'Channel::Api' && inbox.channel.provider_capability?('reactions')
+  end
+
+  def reaction_webhook_payload(reaction, message)
+    {
+      id: reaction.id,
+      emoji: reaction.emoji,
+      actor_type: reaction.actor_type,
+      actor_id: reaction.actor_id,
+      message_id: message.id,
+      source_id: message.source_id,
+      conversation_id: message.conversation.display_id,
+      inbox_id: message.inbox_id
+    }
   end
 end

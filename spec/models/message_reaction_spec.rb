@@ -122,4 +122,33 @@ RSpec.describe MessageReaction do
       Messages::ReactionUpdateService.new(message: message, actor: agent, emoji: '👍').perform
     end
   end
+
+  describe 'event dispatching' do
+    it 'dispatches MESSAGE_REACTION_CREATED on creation' do
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(Events::Types::MESSAGE_REACTION_CREATED, kind_of(Time), hash_including(:message_reaction))
+
+      create(:message_reaction, message: message, actor: agent, emoji: '👍')
+    end
+
+    it 'dispatches MESSAGE_REACTION_UPDATED only when the emoji actually changes' do
+      reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(Events::Types::MESSAGE_REACTION_UPDATED, kind_of(Time), hash_including(:message_reaction))
+      reaction.update!(emoji: '😀')
+    end
+
+    it 'does not dispatch MESSAGE_REACTION_UPDATED for an unrelated save' do
+      reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+
+      expect(Rails.configuration.dispatcher).not_to receive(:dispatch).with(Events::Types::MESSAGE_REACTION_UPDATED, any_args)
+      reaction.touch
+    end
+
+    it 'dispatches MESSAGE_REACTION_DELETED on destroy' do
+      reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(Events::Types::MESSAGE_REACTION_DELETED, kind_of(Time), hash_including(:message_reaction))
+      reaction.destroy!
+    end
+  end
 end

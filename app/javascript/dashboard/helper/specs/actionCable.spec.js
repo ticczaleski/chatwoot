@@ -377,4 +377,41 @@ describe('ActionCableConnector - Copilot Tests', () => {
       expect(mockDispatch).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('message reaction event handlers', () => {
+    it.each([
+      'message_reaction.created',
+      'message_reaction.updated',
+      'message_reaction.deleted',
+    ])('registers the %s event handler', eventName => {
+      expect(Object.keys(actionCable.events)).toContain(eventName);
+      expect(actionCable.events[eventName]).toBe(
+        actionCable.onMessageReactionChanged
+      );
+    });
+
+    it.each([
+      'message_reaction.created',
+      'message_reaction.updated',
+      'message_reaction.deleted',
+    ])(
+      'dispatches updateMessageReactions with camelCased ids for %s',
+      eventName => {
+        const payload = {
+          account_id: 1,
+          message_id: 42,
+          conversation_id: 7,
+          reactions: [{ emoji: '👍', count: 1, user_ids: [1] }],
+        };
+
+        actionCable.onReceived({ event: eventName, data: payload });
+
+        expect(mockDispatch).toHaveBeenCalledWith('updateMessageReactions', {
+          conversationId: 7,
+          messageId: 42,
+          reactions: [{ emoji: '👍', count: 1, user_ids: [1] }],
+        });
+      }
+    );
+  });
 });
