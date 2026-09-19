@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360" fill="none" opacity="0.08">
+  <!-- Speech Bubble -->
+  <path d="M40 30 C30 30 25 35 25 45 C25 55 32 60 40 60 L45 60 L42 68 L52 60 L65 60 C75 60 80 55 80 45 C80 35 75 30 65 30 Z" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/>
+
+  <!-- Heart -->
+  <path d="M125 35 C120 28 110 28 105 35 C100 42 105 52 125 65 C145 52 150 42 145 35 C140 28 130 28 125 35 Z" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Camera -->
+  <rect x="180" y="35" width="30" height="22" rx="4" stroke="#fff" stroke-width="2" fill="none"/>
+  <circle cx="195" cy="46" r="6" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M188 35 L192 31 L198 31 L202 35" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Coffee Cup -->
+  <path d="M260 40 L260 55 C260 62 268 62 275 62 C282 62 290 62 290 55 L290 40 Z" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M290 44 C295 44 298 46 298 50 C298 54 295 56 290 56" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M256 64 L294 64" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Music Note -->
+  <path d="M330 32 L330 52 M330 52 C330 55 327 58 323 58 C319 58 316 55 316 52 C316 49 319 46 323 46 C326 46 328 47 330 49 L330 32 L342 28 L342 48 M342 48 C342 51 339 54 335 54 C331 54 328 51 328 48 C328 45 331 42 335 42 C338 42 340 43 342 45" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Phone Handset -->
+  <path d="M42 110 C38 114 36 120 42 128 C48 136 56 144 64 150 C72 156 78 154 82 150 L88 144 C90 142 90 138 87 135 L80 128 C77 125 74 125 72 128 L68 132 C62 127 58 123 53 117 L57 113 C60 111 60 108 57 105 L50 98 C47 95 44 95 42 98 Z" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Clock -->
+  <circle cx="130" cy="120" r="14" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M130 112 L130 120 L136 123" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Paper Plane -->
+  <path d="M200 130 L225 110 L195 118 L200 130 L206 123 L218 127 Z" stroke="#fff" stroke-width="2" stroke-linejoin="round" fill="none"/>
+
+  <!-- Star -->
+  <path d="M275 110 L278 118 L286 119 L280 125 L282 133 L275 128 L268 133 L270 125 L264 119 L272 118 Z" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Double Checkmark -->
+  <path d="M320 125 L326 131 L338 119 M327 125 L333 131 L345 119" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Location Pin -->
+  <path d="M45 200 C37 200 30 207 30 215 C30 227 45 238 45 238 C45 238 60 227 60 215 C60 207 53 200 45 200 Z" stroke="#fff" stroke-width="2" fill="none"/>
+  <circle cx="45" cy="214" r="4" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Smiley Face -->
+  <circle cx="125" cy="210" r="14" stroke="#fff" stroke-width="2" fill="none"/>
+  <circle cx="120" cy="207" r="1.5" fill="#fff"/>
+  <circle cx="130" cy="207" r="1.5" fill="#fff"/>
+  <path d="M119 214 C122 218 128 218 131 214" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+  <!-- Bell -->
+  <path d="M205 195 C198 195 195 202 195 212 L190 217 L220 217 L215 212 C215 202 212 195 205 195 Z" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M202 218 C202 220 203 222 205 222 C207 222 208 220 208 218" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Headphones -->
+  <path d="M265 215 C265 202 274 195 285 195 C296 195 305 202 305 215" stroke="#fff" stroke-width="2" fill="none"/>
+  <rect x="261" y="210" width="8" height="14" rx="3" stroke="#fff" stroke-width="2" fill="none"/>
+  <rect x="301" y="210" width="8" height="14" rx="3" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Microphone -->
+  <rect x="40" y="280" width="10" height="18" rx="5" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M35 288 C35 296 41 302 45 302 C49 302 55 296 55 288" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M45 302 L45 308 M40 308 L50 308" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Sparkles -->
+  <path d="M125 280 L127 288 L135 290 L127 292 L125 300 L123 292 L115 290 L123 288 Z" stroke="#fff" stroke-width="2" fill="none"/>
+
+  <!-- Search Magnifier -->
+  <circle cx="205" cy="290" r="10" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M213 298 L223 308" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Gift Box -->
+  <rect x="275" y="285" width="22" height="20" rx="2" stroke="#fff" stroke-width="2" fill="none"/>
+  <path d="M273 285 L299 285" stroke="#fff" stroke-width="2"/>
+  <path d="M286 285 L286 305" stroke="#fff" stroke-width="2"/>
+  <path d="M281 280 C281 277 284 276 286 279 C288 276 291 277 291 280" stroke="#fff" stroke-width="2" fill="none"/>
+</svg>

@@ -500,7 +500,8 @@ export default {
       />
     </div>
     <div
-      class="relative flex-shrink flex-grow basis-px overflow-hidden bg-wa-bg dark:bg-wa-chat-bg-dark before:pointer-events-none before:absolute before:inset-0 before:bg-wa-doodle before:bg-repeat before:bg-[length:420px_auto] before:opacity-30 dark:before:opacity-30 before:invert dark:before:filter-none"
+      data-testid="conversation-wallpaper"
+      class="relative flex-shrink flex-grow basis-px overflow-hidden bg-wa-bg dark:bg-wa-chat-bg-dark before:pointer-events-none before:absolute before:inset-0 before:bg-wa-doodle dark:before:bg-wa-doodle-dark before:bg-repeat before:bg-[length:420px_auto]"
     >
       <MessageList
         ref="conversationPanelRef"

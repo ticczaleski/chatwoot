@@ -41,7 +41,8 @@ const tailwindConfig = {
   theme: {
     extend: {
       backgroundImage: {
-        'wa-doodle': "url('/dashboard/images/wa-chat-bg.png')",
+        'wa-doodle': "url('/dashboard/images/wa-doodle.svg')",
+        'wa-doodle-dark': "url('/dashboard/images/wa-doodle-dark.svg')",
       },
       fontFamily: {
         sans: defaultSansFonts,
