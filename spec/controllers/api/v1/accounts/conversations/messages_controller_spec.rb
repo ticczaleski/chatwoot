@@ -36,6 +36,26 @@ RSpec.describe 'Conversation Messages API', type: :request do
         expect(conversation.messages.first.content).to eq(params[:content])
       end
 
+      it 'adds reactions additively without changing any existing message JSON field' do
+        params = { content: 'test-message', private: true }
+
+        post api_v1_account_conversation_messages_url(account_id: account.id, conversation_id: conversation.display_id),
+             params: params,
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        body = response.parsed_body
+        # The reactions key is new; every other key must be exactly what a pre-reactions
+        # client already expects, so an older client parsing this payload is unaffected.
+        expect(body).to include(
+          'content' => 'test-message',
+          'private' => true,
+          'message_type' => 1,
+          'status' => 'sent'
+        )
+        expect(body['reactions']).to eq([])
+      end
+
       it 'does not create the message' do
         params = { content: "#{'h' * 150 * 1000}a", private: true }
 
