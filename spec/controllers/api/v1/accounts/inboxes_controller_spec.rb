@@ -688,6 +688,60 @@ RSpec.describe 'Inboxes API', type: :request do
         expect(api_channel.reload.webhook_url).to eq('webhook.test')
       end
 
+      it 'keeps a generic api inbox valid without an Evolution provider' do
+        api_channel = create(:channel_api, account: account)
+        api_inbox = create(:inbox, channel: api_channel, account: account)
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{api_inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: { channel: { additional_attributes: { agent_reply_time_window: 60 } } },
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(api_channel.reload.evolution?).to be(false)
+        expect(api_channel.additional_attributes['agent_reply_time_window']).to eq(60)
+      end
+
+      it 'accepts Evolution provider capabilities on an api inbox' do
+        api_channel = create(:channel_api, account: account)
+        api_inbox = create(:inbox, channel: api_channel, account: account)
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{api_inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: { channel: { additional_attributes: { provider: 'evolution', provider_capabilities: %w[reactions] } } },
+              as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(api_channel.reload.evolution?).to be(true)
+        expect(api_channel.provider_capability?('reactions')).to be(true)
+      end
+
+      it 'returns 422 and does not persist an unsupported provider value' do
+        api_channel = create(:channel_api, account: account)
+        api_inbox = create(:inbox, channel: api_channel, account: account)
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{api_inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: { channel: { additional_attributes: { provider: 'not-a-real-provider' } } },
+              as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(api_channel.reload.additional_attributes['provider']).to be_nil
+      end
+
+      it 'returns 422 and does not persist provider_capabilities without an Evolution provider' do
+        api_channel = create(:channel_api, account: account)
+        api_inbox = create(:inbox, channel: api_channel, account: account)
+
+        patch "/api/v1/accounts/#{account.id}/inboxes/#{api_inbox.id}",
+              headers: admin.create_new_auth_token,
+              params: { channel: { additional_attributes: { provider_capabilities: %w[reactions] } } },
+              as: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(api_channel.reload.additional_attributes['provider_capabilities']).to be_nil
+      end
+
       it 'updates whatsapp inbox when administrator' do
         stub_request(:post, 'https://waba.360dialog.io/v1/configs/webhook').to_return(status: 200, body: '', headers: {})
         stub_request(:get, 'https://waba.360dialog.io/v1/configs/templates').to_return(status: 200, body: '', headers: {})

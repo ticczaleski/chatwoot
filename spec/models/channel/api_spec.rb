@@ -34,6 +34,28 @@ RSpec.describe Channel::Api do
       end
     end
 
+    context 'when provider_capabilities is set without provider being evolution' do
+      it 'does not report the capability as enabled' do
+        channel_api.additional_attributes = { 'provider_capabilities' => ['reactions'] }
+
+        expect(channel_api.evolution?).to be(false)
+        expect(channel_api.provider_capability?('reactions')).to be(false)
+      end
+
+      it 'is invalid, rejecting capabilities on a non-Evolution provider' do
+        channel_api.additional_attributes = { 'provider_capabilities' => ['reactions'] }
+
+        expect(channel_api.valid?).to be(false)
+        expect(channel_api.errors[:additional_attributes]).to be_present
+      end
+
+      it 'is invalid when a non-evolution provider also sets capabilities' do
+        channel_api.additional_attributes = { 'provider' => 'not-a-real-provider', 'provider_capabilities' => ['reactions'] }
+
+        expect(channel_api.valid?).to be(false)
+      end
+    end
+
     context 'when provider is evolution with capabilities' do
       before do
         channel_api.update!(
@@ -67,6 +89,28 @@ RSpec.describe Channel::Api do
       end
     end
 
+    context 'when provider is present but not a truthy-looking non-string' do
+      it 'rejects false instead of treating it as absent' do
+        channel_api.additional_attributes = { 'provider' => false }
+        expect(channel_api.valid?).to be(false)
+      end
+
+      it 'rejects an empty string instead of treating it as absent' do
+        channel_api.additional_attributes = { 'provider' => '' }
+        expect(channel_api.valid?).to be(false)
+      end
+
+      it 'rejects an empty array' do
+        channel_api.additional_attributes = { 'provider' => [] }
+        expect(channel_api.valid?).to be(false)
+      end
+
+      it 'rejects an empty hash' do
+        channel_api.additional_attributes = { 'provider' => {} }
+        expect(channel_api.valid?).to be(false)
+      end
+    end
+
     context 'when provider_capabilities contains an unknown capability' do
       it 'is invalid' do
         channel_api.additional_attributes = { 'provider' => 'evolution', 'provider_capabilities' => ['reactions', 'not-a-real-capability'] }
@@ -80,6 +124,30 @@ RSpec.describe Channel::Api do
         channel_api.additional_attributes = { 'provider' => 'evolution', 'provider_capabilities' => 'reactions' }
         expect(channel_api.valid?).to be(false)
         expect(channel_api.errors[:additional_attributes]).to be_present
+      end
+
+      it 'rejects a hash instead of an array' do
+        channel_api.additional_attributes = { 'provider' => 'evolution', 'provider_capabilities' => { 'reactions' => true } }
+        expect(channel_api.valid?).to be(false)
+      end
+    end
+
+    context 'when provider_capabilities elements are not strings' do
+      it 'rejects symbol elements instead of coercing them' do
+        channel_api.additional_attributes = { 'provider' => 'evolution', 'provider_capabilities' => [:reactions] }
+        expect(channel_api.valid?).to be(false)
+      end
+
+      it 'rejects integer elements instead of coercing them' do
+        channel_api.additional_attributes = { 'provider' => 'evolution', 'provider_capabilities' => [1] }
+        expect(channel_api.valid?).to be(false)
+      end
+    end
+
+    context 'when a generic (non-Evolution) API inbox sets unrelated additional_attributes' do
+      it 'remains valid without a provider key' do
+        channel_api.additional_attributes = { 'agent_reply_time_window' => 60 }
+        expect(channel_api.valid?).to be(true)
       end
     end
   end

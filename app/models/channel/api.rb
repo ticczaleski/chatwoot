@@ -45,6 +45,8 @@ class Channel::Api < ApplicationRecord
   end
 
   def provider_capability?(capability_name)
+    return false unless evolution?
+
     Array(additional_attributes['provider_capabilities']).include?(capability_name.to_s)
   end
 
@@ -57,24 +59,35 @@ class Channel::Api < ApplicationRecord
     errors.add(:agent_reply_time_window, 'agent_reply_time_window must be greater than 0')
   end
 
+  # additional_attributes is a free-form jsonb column shared by every API-inbox use case,
+  # so we only enforce shape on the specific keys this provider contract owns, and we treat
+  # an invalid present value (wrong type, unknown provider, non-allowlisted capability) as an
+  # error rather than silently coercing or ignoring it.
   def ensure_valid_provider
+    return unless additional_attributes.key?('provider')
+
     provider = additional_attributes['provider']
-    return if provider.blank?
-    return if SUPPORTED_PROVIDERS.include?(provider)
+    return if provider.is_a?(String) && SUPPORTED_PROVIDERS.include?(provider)
 
     errors.add(:additional_attributes, "provider must be one of #{SUPPORTED_PROVIDERS.join(', ')}")
   end
 
   def ensure_valid_provider_capabilities
-    capabilities = additional_attributes['provider_capabilities']
-    return if capabilities.blank?
+    return unless additional_attributes.key?('provider_capabilities')
 
-    unless capabilities.is_a?(Array)
-      errors.add(:additional_attributes, 'provider_capabilities must be an array')
+    capabilities = additional_attributes['provider_capabilities']
+
+    unless capabilities.is_a?(Array) && capabilities.all? { |capability| capability.is_a?(String) }
+      errors.add(:additional_attributes, 'provider_capabilities must be an array of capability strings')
       return
     end
 
-    unsupported = capabilities.map(&:to_s) - SUPPORTED_PROVIDER_CAPABILITIES
+    unless evolution?
+      errors.add(:additional_attributes, 'provider_capabilities requires provider to be evolution')
+      return
+    end
+
+    unsupported = capabilities - SUPPORTED_PROVIDER_CAPABILITIES
     return if unsupported.empty?
 
     errors.add(:additional_attributes, "provider_capabilities contains unsupported values: #{unsupported.join(', ')}")
