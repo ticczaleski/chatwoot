@@ -16,6 +16,33 @@ RSpec.describe Message do
     it { is_expected.to validate_presence_of(:account_id) }
   end
 
+  describe 'source_id uniqueness' do
+    let(:inbox) { create(:inbox, account: create(:account)) }
+    let!(:existing_message) { create(:message, inbox: inbox, account: inbox.account, source_id: 'WAID:dup') }
+
+    it 'rejects a duplicate source_id within the same inbox' do
+      duplicate = build(:message, inbox: inbox, account: inbox.account, conversation: existing_message.conversation, source_id: 'WAID:dup')
+
+      expect(duplicate.valid?).to be(false)
+      expect(duplicate.errors[:source_id]).to be_present
+    end
+
+    it 'allows the same source_id value on a different inbox' do
+      other_inbox = create(:inbox, account: inbox.account)
+      other_message = build(:message, inbox: other_inbox, account: inbox.account, source_id: 'WAID:dup')
+
+      expect(other_message.valid?).to be(true)
+    end
+
+    it 'allows multiple messages with a nil source_id in the same inbox' do
+      first = build(:message, inbox: inbox, account: inbox.account, conversation: existing_message.conversation, source_id: nil)
+      second = build(:message, inbox: inbox, account: inbox.account, conversation: existing_message.conversation, source_id: nil)
+
+      expect(first.valid?).to be(true)
+      expect(second.valid?).to be(true)
+    end
+  end
+
   describe 'length validations' do
     let!(:message) { create(:message) }
 
