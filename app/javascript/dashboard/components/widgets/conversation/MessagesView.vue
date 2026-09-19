@@ -500,6 +500,7 @@ export default {
       />
     </div>
     <div
+      data-testid="conversation-wallpaper"
       class="relative flex-shrink flex-grow basis-px overflow-hidden bg-wa-bg dark:bg-wa-chat-bg-dark before:pointer-events-none before:absolute before:inset-0 before:bg-wa-doodle dark:before:bg-wa-doodle-dark before:bg-repeat before:bg-[length:420px_auto]"
     >
       <MessageList
