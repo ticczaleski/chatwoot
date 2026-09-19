@@ -46,6 +46,18 @@ class ActionCableListener < BaseListener
     broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
   end
 
+  def message_reaction_created(event)
+    broadcast_reaction_event(event, MESSAGE_REACTION_CREATED)
+  end
+
+  def message_reaction_updated(event)
+    broadcast_reaction_event(event, MESSAGE_REACTION_UPDATED)
+  end
+
+  def message_reaction_deleted(event)
+    broadcast_reaction_event(event, MESSAGE_REACTION_DELETED)
+  end
+
   def message_updated(event)
     message, account = extract_message_and_account(event)
     conversation = message.conversation
@@ -217,6 +229,37 @@ class ActionCableListener < BaseListener
     contact = contact_inbox.contact
 
     contact_inbox.hmac_verified? ? contact.contact_inboxes.where(hmac_verified: true).filter_map(&:pubsub_token) : [contact_inbox.pubsub_token]
+  end
+
+  # A reaction is state on an existing message, never a chat message: the broadcast payload
+  # carries only the message/conversation identity plus a per-emoji summary (count and the
+  # ids of the *users* who reacted with it). `reacted_by_current_user` is intentionally left
+  # for the frontend to compute against its own logged-in user id, since a single fan-out
+  # broadcast has no single "current viewer" to compute that flag for server-side.
+  def broadcast_reaction_event(event, event_type)
+    reaction = event.data[:message_reaction]
+    message = reaction.message
+    return if message.blank?
+
+    conversation = message.conversation
+    account = conversation.account
+    tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
+
+    broadcast(account, tokens, event_type, {
+                message_id: message.id,
+                conversation_id: conversation.display_id,
+                reactions: reaction_summary_for_broadcast(message)
+              })
+  end
+
+  def reaction_summary_for_broadcast(message)
+    message.message_reactions.group_by(&:emoji).map do |emoji, reactions|
+      {
+        emoji: emoji,
+        count: reactions.size,
+        user_ids: reactions.select { |reaction| reaction.actor_type == 'User' }.map(&:actor_id)
+      }
+    end
   end
 
   def broadcast(account, tokens, event_name, data)

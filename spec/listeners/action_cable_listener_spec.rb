@@ -78,6 +78,53 @@ describe ActionCableListener do
     end
   end
 
+  describe 'message reaction events' do
+    let!(:message) do
+      create(:message, message_type: 'outgoing', account: account, inbox: inbox, conversation: conversation)
+    end
+
+    shared_examples 'a reaction broadcast' do |method_name, event_name|
+      it 'broadcasts message_id, conversation_id, and a per-emoji summary with reactor user_ids' do
+        reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+          a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token),
+          event_name.to_s,
+          {
+            message_id: message.id,
+            conversation_id: conversation.display_id,
+            reactions: [{ emoji: '👍', count: 1, user_ids: [agent.id] }],
+            account_id: account.id
+          }
+        )
+
+        listener.public_send(method_name, event)
+      end
+
+      it 'does not broadcast when the parent message no longer exists' do
+        reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+        message.destroy!
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(ActionCableBroadcastJob).not_to receive(:perform_later)
+        expect { listener.public_send(method_name, event) }.not_to raise_error
+      end
+    end
+
+    describe '#message_reaction_created' do
+      include_examples 'a reaction broadcast', :message_reaction_created, :'message_reaction.created'
+    end
+
+    describe '#message_reaction_updated' do
+      include_examples 'a reaction broadcast', :message_reaction_updated, :'message_reaction.updated'
+    end
+
+    describe '#message_reaction_deleted' do
+      include_examples 'a reaction broadcast', :message_reaction_deleted, :'message_reaction.deleted'
+    end
+  end
+
   describe '#typing_on' do
     let(:event_name) { :'conversation.typing_on' }
     let!(:event) { Events::Base.new(event_name, Time.zone.now, conversation: conversation, user: agent, is_private: false) }

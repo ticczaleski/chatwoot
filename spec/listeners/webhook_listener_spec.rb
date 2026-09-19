@@ -126,6 +126,85 @@ describe WebhookListener do
     end
   end
 
+  describe 'message reaction events' do
+    let(:capable_channel_api) { create(:channel_api, account: account) }
+    let(:capable_inbox) { capable_channel_api.inbox }
+    let(:capable_conversation) { create(:conversation, account: account, inbox: capable_inbox) }
+    let(:capable_message) { create(:message, account: account, inbox: capable_inbox, conversation: capable_conversation, source_id: 'WAID:parent-1') }
+
+    before do
+      capable_channel_api.update!(additional_attributes: { 'provider' => 'evolution', 'provider_capabilities' => ['reactions'] })
+    end
+
+    shared_examples 'a reaction event' do |method_name, event_name|
+      it "delivers to a capable API inbox's webhook with the message's source_id" do
+        reaction = create(:message_reaction, message: capable_message, actor: user, emoji: '👍')
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(WebhookJob).to receive(:perform_later).with(
+          capable_channel_api.webhook_url,
+          hash_including(
+            event: method_name.to_s,
+            message_id: capable_message.id,
+            source_id: 'WAID:parent-1',
+            emoji: '👍'
+          ),
+          :api_inbox_webhook,
+          secret: capable_channel_api.secret, delivery_id: instance_of(String)
+        ).once
+
+        listener.public_send(method_name, event)
+      end
+
+      it 'does not deliver to an API inbox that lacks the reactions capability' do
+        channel_api = create(:channel_api, account: account)
+        api_inbox = channel_api.inbox
+        api_conversation = create(:conversation, account: account, inbox: api_inbox)
+        api_message = create(:message, account: account, inbox: api_inbox, conversation: api_conversation)
+        reaction = create(:message_reaction, message: api_message, actor: user, emoji: '👍')
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(WebhookJob).not_to receive(:perform_later).with(channel_api.webhook_url, any_args)
+
+        listener.public_send(method_name, event)
+      end
+
+      it 'still delivers to a subscribed account-level webhook regardless of inbox capability' do
+        webhook = create(:webhook, subscriptions: [method_name.to_s], inbox: inbox, account: account)
+        reaction = create(:message_reaction, message: message, actor: user, emoji: '👍')
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(WebhookJob).to receive(:perform_later).with(
+          webhook.url, hash_including(event: method_name.to_s), :account_webhook,
+          secret: webhook.secret, delivery_id: instance_of(String)
+        ).once
+
+        listener.public_send(method_name, event)
+      end
+
+      it 'acknowledges without error when the parent message no longer exists' do
+        reaction = create(:message_reaction, message: capable_message, actor: user, emoji: '👍')
+        capable_message.destroy!
+        event = Events::Base.new(event_name, Time.zone.now, message_reaction: reaction)
+
+        expect(WebhookJob).not_to receive(:perform_later)
+        expect { listener.public_send(method_name, event) }.not_to raise_error
+      end
+    end
+
+    describe '#message_reaction_created' do
+      include_examples 'a reaction event', :message_reaction_created, :'message_reaction.created'
+    end
+
+    describe '#message_reaction_updated' do
+      include_examples 'a reaction event', :message_reaction_updated, :'message_reaction.updated'
+    end
+
+    describe '#message_reaction_deleted' do
+      include_examples 'a reaction event', :message_reaction_deleted, :'message_reaction.deleted'
+    end
+  end
+
   describe '#conversation_created' do
     let(:event_name) { :'conversation.created' }
 
