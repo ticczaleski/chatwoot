@@ -135,6 +135,7 @@ class Message < ApplicationRecord
   has_many :attachments, dependent: :destroy, autosave: true, before_add: :validate_attachments_limit
   has_one :csat_survey_response, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
+  has_many :message_reactions, dependent: :destroy
 
   after_create_commit :execute_after_create_commit_callbacks
 
@@ -170,6 +171,19 @@ class Message < ApplicationRecord
     data[:sender] = sender.push_event_data if sender && !sender.is_a?(AgentBot)
     data[:sender] = sender.push_event_data(inbox) if sender.is_a?(AgentBot)
     data
+  end
+
+  # Additive, optional field for message JSON: older clients that ignore it keep rendering
+  # the message normally. `current_actor` (a User or Contact) is only used to compute
+  # `reacted_by_current_user`; pass nil to omit it (e.g. no viewer context).
+  def reactions_summary(current_actor = nil)
+    message_reactions.group_by(&:emoji).map do |emoji, reactions|
+      reacted_by_current_user = current_actor.present? && reactions.any? do |reaction|
+        reaction.actor_type == current_actor.class.name && reaction.actor_id == current_actor.id
+      end
+
+      { emoji: emoji, count: reactions.size, reacted_by_current_user: reacted_by_current_user }
+    end
   end
 
   def webhook_push_event_data

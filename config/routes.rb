@@ -170,6 +170,8 @@ Rails.application.routes.draw do
                 member do
                   post :translate
                   post :retry
+                  put :reaction, to: 'message_reactions#update'
+                  get :reactions, to: 'message_reactions#index'
                 end
               end
               resource :contact_info_request, only: [:create]

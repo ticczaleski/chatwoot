@@ -90,3 +90,15 @@ properties:
   sender:
     type: object
     description: User/Agent/AgentBot object
+  reactions:
+    type: array
+    description: Aggregated reactions on this message, grouped by emoji
+    items:
+      type: object
+      properties:
+        emoji:
+          type: string
+        count:
+          type: number
+        reacted_by_current_user:
+          type: boolean
