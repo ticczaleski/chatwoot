@@ -150,10 +150,58 @@ this checklist is to prove older/current mobile clients are **unaffected**.
 - No new required permission, deep link, or push-notification payload change
   was introduced.
 
+## Incident: 2026-09-19 — `message_reactions` migration not run before deploy
+
+**What happened:** the Chatwoot image was deployed with the Phase 5–7 code
+before the pending migrations (`AddUniqueIndexOnMessagesInboxIdSourceId`,
+`CreateMessageReactions`) were applied to the production database. Every
+request that rendered a message's JSON — including `GET
+.../conversations/:id/messages` used to load older messages when scrolling up
+— called `message.reactions_summary` unconditionally
+(`app/views/api/v1/models/_message.json.jbuilder:15`), which queries the
+`message_reactions` table. Since the table didn't exist yet, this raised
+`PG::UndefinedTable: relation "message_reactions" does not exist` and the
+endpoint returned 500. Symptom: conversations spun on a loading indicator and
+only showed the single most-recent message (delivered separately via
+ActionCable, which doesn't go through this jbuilder).
+
+**Why the capability gate didn't protect against this:** the capability model
+(above) only gates *behavior* — whether reactions can be created, whether
+Evolution relays them. It does not gate the *JSON serialization*, which reads
+`reactions_summary` for every message regardless of whether any inbox has the
+`reactions` capability enabled. A table dependency introduced by additive code
+is not itself "additive" if the migration hasn't run yet.
+
+**Fix applied:** ran `bundle exec rails db:migrate` in production (confirmed
+no `(inbox_id, source_id)` duplicates existed first, so both pending
+migrations applied cleanly in one pass). Resolved immediately, no data loss,
+no code rollback needed.
+
+**Lesson — corrected staged-enablement order below:** migrations must run
+**before** (or as part of) deploying the application code that depends on
+them, never after. This applies even when the corresponding capability is
+disabled for every inbox, because unconditional code paths (like message JSON
+serialization) don't check the capability at all.
+
 ## Staged enablement
 
 Deploy in this order, verifying each stage before proceeding:
 
+0. **Run pending database migrations before deploying the new application
+   code** (not after). For this work specifically: check for existing
+   `(inbox_id, source_id)` duplicates first —
+   ```sql
+   SELECT inbox_id, source_id, COUNT(*)
+   FROM messages
+   WHERE source_id IS NOT NULL
+   GROUP BY inbox_id, source_id
+   HAVING COUNT(*) > 1;
+   ```
+   If empty, run `bundle exec rails db:migrate` in full. If not empty, apply
+   only the safe, independent migration first to avoid blocking on the risky
+   one (`bundle exec rails db:migrate:up VERSION=20260919000001` for
+   `CreateMessageReactions`), then resolve the duplicates before applying
+   `AddUniqueIndexOnMessagesInboxIdSourceId` separately.
 1. Deploy Chatwoot (Phases 1–5, 7) and Evolution (Phase 3–4) code with **no**
    inbox having `reactions` in `provider_capabilities` yet. This ships the
    wallpaper fix, idempotent delivery, and quoted-reply fix for every existing
