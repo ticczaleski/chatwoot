@@ -378,6 +378,72 @@ RSpec.describe 'Conversation Messages API', type: :request do
           expect(message.reload.status).to eq('failed')
           expect(message.reload.external_error).to eq('err123')
         end
+
+        it 'registers the external source_id for the message' do
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: { source_id: 'WAID:abc123' }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:success)
+          expect(message.reload.source_id).to eq('WAID:abc123')
+        end
+
+        it 'rejects a source_id already used by another message on the same inbox' do
+          create(:message, conversation: conversation, account: account, inbox: api_inbox, source_id: 'WAID:dup')
+
+          patch api_v1_account_conversation_message_url(
+            account_id: account.id,
+            conversation_id: conversation.display_id,
+            id: message.id
+          ), params: { source_id: 'WAID:dup' }, headers: agent.create_new_auth_token, as: :json
+
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(message.reload.source_id).to be_nil
+        end
+      end
+    end
+
+    context 'when a non-API inbox message update is attempted with source_id' do
+      let(:inbox) { create(:inbox, account: account) }
+      let(:agent) { create(:user, account: account, role: :agent) }
+      let!(:conversation) { create(:conversation, inbox: inbox, account: account) }
+      let!(:message) { create(:message, conversation: conversation, account: account, inbox: inbox) }
+
+      before { create(:inbox_member, inbox: inbox, user: agent) }
+
+      it 'returns forbidden and does not persist the source_id' do
+        patch api_v1_account_conversation_message_url(
+          account_id: account.id,
+          conversation_id: conversation.display_id,
+          id: message.id
+        ), params: { source_id: 'WAID:abc123' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:forbidden)
+        expect(message.reload.source_id).to be_nil
+      end
+    end
+
+    context 'when the conversation belongs to another account' do
+      let(:other_account) { create(:account) }
+      let(:other_api_channel) { create(:channel_api, account: other_account) }
+      let(:other_api_inbox) { create(:inbox, channel: other_api_channel, account: other_account) }
+      let!(:other_conversation) { create(:conversation, inbox: other_api_inbox, account: other_account) }
+      let!(:other_message) { create(:message, conversation: other_conversation, account: other_account, inbox: other_api_inbox) }
+      let(:agent) { create(:user, account: account, role: :agent) }
+
+      before { create(:inbox_member, inbox: api_inbox, user: agent) }
+
+      it 'returns not found and does not leak the source_id across accounts' do
+        patch api_v1_account_conversation_message_url(
+          account_id: account.id,
+          conversation_id: other_conversation.display_id,
+          id: other_message.id
+        ), params: { source_id: 'WAID:abc123' }, headers: agent.create_new_auth_token, as: :json
+
+        expect(response).to have_http_status(:not_found)
+        expect(other_message.reload.source_id).to be_nil
       end
     end
   end
