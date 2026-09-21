@@ -75,7 +75,10 @@ on a canary/staging account with the `reactions` capability enabled.
 - [ ] Quoted reply to an incoming message
 - [ ] Quoted reply to an outgoing (agent-sent) message — this is the case Phase 4
       specifically fixed; confirm the quote resolves correctly on both ends
-- [ ] Reaction added (agent side and contact side)
+- [x] Reaction added (agent side and contact side) — verified 2026-09-21 in
+      production against a real WhatsApp contact (+555599703107), after fixing
+      the two issues above (capability not configured, then the `instanceId`
+      bug — see "Incident: 2026-09-21" below)
 - [ ] Reaction replaced with a different emoji (agent side and contact side)
 - [ ] Reaction removed (agent side and contact side)
 - [ ] Message delete/unsend
@@ -182,6 +185,51 @@ no code rollback needed.
 them, never after. This applies even when the corresponding capability is
 disabled for every inbox, because unconditional code paths (like message JSON
 serialization) don't check the capability at all.
+
+## Incident: 2026-09-21 — agent reactions never reached WhatsApp (Evolution-side bug)
+
+**What happened:** after the 2026-09-19 migration fix, manual verification found
+the `reactions` capability wasn't even enabled yet on the two production
+Evolution inboxes (`additional_attributes` was `{}` — never configured). Once
+enabled, the WhatsApp-contact → Chatwoot direction worked immediately, but
+agent reactions sent from the Chatwoot dashboard still never reached WhatsApp.
+Evolution's logs showed the webhook arriving and being accepted, but every
+attempt logged `Could not resolve WhatsApp key for chatwoot message X;
+acknowledging without retry`, even for a message confirmed to exist (with the
+matching WhatsApp key) in Evolution's own local `Message` table.
+
+**Root cause:** Evolution's `ChatwootRouter` webhook route
+(`POST /chatwoot/webhook/:instanceName`) builds its `instance` object from the
+URL's `:instanceName` param alone (`RouterBroker#dataValidate` never resolves
+`instanceId`). The pre-existing `message_created` handling path patches this
+in — `instance.instanceId = waInstance.instanceId`, right after resolving the
+running instance — before using it for anything DB-keyed. The reaction
+webhook handler added in Phase 6 (`handleReactionWebhook`) resolved
+`waInstance` the same way but never copied its `instanceId` onto `instance`,
+so `getMessageByKeyId`'s `WHERE "instanceId" = ${instance.instanceId}`
+predicate always compared against `undefined` and silently matched zero rows
+— not a Chatwoot-side or capability-model problem at all.
+
+**Why this wasn't caught by the reaction bridge's unit tests:** every existing
+test mocked `getMessageByKeyId` directly, bypassing the real SQL predicate
+construction (and therefore the missing `instanceId` assignment) entirely.
+
+**Fix applied:** [ticczaleski/evolution-api#5](https://github.com/ticczaleski/evolution-api/pull/5)
+adds the same `instance.instanceId = waInstance.instanceId` assignment to
+`handleReactionWebhook`, plus a regression test that constructs a bare
+`{instanceName}` instance (matching what the real webhook route produces) and
+asserts `getMessageByKeyId` receives the resolved `instanceId`. Verified live
+against both production inboxes after redeploying the image: reactions now
+relay correctly in both directions.
+
+**Lesson:** any Evolution code path entered via `receiveWebhook` (the
+Chatwoot → Evolution HTTP webhook) needs a manual `instanceId` resolution step
+before it can rely on it for a DB lookup — `instance` is not a fully-populated
+`InstanceDto` on that path the way it is on paths driven by Baileys' own
+`messages.upsert` handler (which does construct one with both fields from the
+start). A unit test that mocks past this assignment can't catch a missing one;
+verifying the reaction bridge end-to-end against a real deployment (not just
+its unit tests) is what actually surfaced this.
 
 ## Staged enablement
 
