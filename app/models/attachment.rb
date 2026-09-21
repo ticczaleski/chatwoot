@@ -59,15 +59,19 @@ class Attachment < ApplicationRecord
   end
 
   # NOTE: for External services use this methods since redirect doesn't work effectively in a lot of cases
-  #
-  # `expires_in` defaults to ActiveStorage's own default (5 minutes) because every existing
-  # caller (the outbound provider send services — WhatsApp Cloud, Twilio, Facebook, etc.) fetches
-  # this URL immediately, at send time. A caller that instead embeds this URL somewhere it will
-  # be read back later (e.g. a message's JSON, read whenever a client happens to open the
-  # conversation) must pass a much longer value, or the link will have already expired.
-  def download_url(expires_in: ActiveStorage.service_urls_expire_in)
+  def download_url
     ActiveStorage::Current.url_options = Rails.application.routes.default_url_options if ActiveStorage::Current.url_options.blank?
-    file.attached? ? file.blob.url(expires_in: expires_in) : ''
+    file.attached? ? file.blob.url : ''
+  end
+
+  # NOTE: like file_url, but resolves via ActiveStorage's *proxy* route (no redirect) with a
+  # signed_id that carries no expiry, instead of file_url's redirect or download_url's
+  # short/arbitrarily-long-lived direct disk URL. This is the same mechanism inline_audio_url
+  # already relies on for audio via a configured resolve_model_to_route — Rails' own
+  # recommended pattern for a client that needs a stable, directly-fetchable URL without
+  # following a redirect or worrying about a signature going stale.
+  def proxy_url
+    file.attached? ? rails_storage_proxy_url(file) : ''
   end
 
   def thumb_url
@@ -131,18 +135,17 @@ class Attachment < ApplicationRecord
     metadata = {
       extension: extension,
       content_type: file.content_type,
-      # Generic documents (file_type: :file) use download_url here, not file_url: mobile
-      # clients fetch these as a one-shot download/open rather than rendering them inline the
-      # way an <img> tag follows a redirect transparently, and file_url's redirect doesn't
-      # resolve reliably for that kind of external, non-browser fetch (see the NOTE on
-      # download_url above) — confirmed live: a PDF attachment stuck loading indefinitely in
-      # the Chatwoot mobile app while an image attachment on the same conversation rendered
-      # fine. Needs a long expires_in (unlike download_url's other callers, which all fetch
-      # immediately at send time): this URL is embedded in the message JSON and may only
-      # actually be opened whenever a client later happens to load the conversation — a
-      # PDF that "loads and then instantly fails" after the follow-up fix for the redirect
-      # issue is this same class of bug, just with a 5-minute window instead of none.
-      data_url: file_type.to_sym == :file ? download_url(expires_in: 1.week) : file_url,
+      # Generic documents (file_type: :file) use proxy_url here, not file_url: a redirect
+      # (file_url) was suspected of not resolving reliably for a mobile client's one-shot
+      # download/open, and a direct signed disk URL (download_url) needs an arbitrary expiry
+      # chosen for a client that may only open it whenever it later happens to load the
+      # conversation. Neither theory was ultimately confirmed as the cause of a real PDF
+      # attachment failing to open in the Chatwoot mobile app (isolated instead to the app's
+      # own download/file-write code — see docs/evolution-api-compatibility.md's "Incident:
+      # 2026-09-21 — media attachments never reached WhatsApp" for the full trail), but
+      # proxy_url is strictly better than both regardless: no redirect to follow, and no
+      # expiry to arbitrarily pick since its signed_id never goes stale.
+      data_url: file_type.to_sym == :file ? proxy_url : file_url,
       thumb_url: thumb_url,
       file_size: file.byte_size,
       width: file.metadata[:width],

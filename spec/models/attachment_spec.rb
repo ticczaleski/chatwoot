@@ -312,32 +312,19 @@ RSpec.describe Attachment do
     end
   end
 
-  # Regression: a generic document (file_type: :file) attachment got stuck loading
-  # indefinitely and could not be downloaded in the Chatwoot mobile app, while an image
-  # attachment on the same conversation rendered fine. file_url's 301 redirect (used for
-  # every other file_type) doesn't resolve reliably for a mobile client's one-shot
-  # download/open, per the NOTE already on Attachment#download_url - so documents use that
-  # directly instead.
+  # A generic document (file_type: :file) attachment failed to open/download in the Chatwoot
+  # mobile app; file_url's redirect and download_url's arbitrary expiry were both tried and
+  # ruled out as the cause (isolated instead to the mobile app's own download/file-write code -
+  # see docs/evolution-api-compatibility.md's "Incident: 2026-09-21" for the full trail), but
+  # proxy_url is strictly better than both regardless: no redirect, no expiry to go stale.
   describe 'push_event_data data_url for documents vs images' do
-    it 'uses download_url (no redirect) with a long expiry for a generic document attachment' do
+    it 'uses proxy_url (no redirect, non-expiring) for a generic document attachment' do
       attachment = message.attachments.new(account_id: message.account_id, file_type: :file)
       attachment.file.attach(io: StringIO.new('fake pdf'), filename: 'test.pdf', content_type: 'application/pdf')
       attachment.save!
 
-      expect(attachment.push_event_data[:data_url]).to eq(attachment.download_url(expires_in: 1.week))
+      expect(attachment.push_event_data[:data_url]).to eq(attachment.proxy_url)
       expect(attachment.push_event_data[:data_url]).not_to eq(attachment.file_url)
-    end
-
-    # Regression: download_url's other callers (WhatsApp Cloud, Twilio, etc.) all fetch the
-    # URL immediately at send time, so its short default expiry is fine for them - but the
-    # same short expiry baked into a message's JSON meant the document "loaded" fine and then
-    # failed a few minutes later with a client-side "File load error" once the signed URL
-    # expired, whenever the client actually got around to opening it.
-    it 'gives the document a materially longer expiry than download_url\'s own default' do
-      attachment = message.attachments.new(account_id: message.account_id, file_type: :file)
-      attachment.file.attach(io: StringIO.new('fake pdf'), filename: 'test.pdf', content_type: 'application/pdf')
-      attachment.save!
-
       expect(attachment.push_event_data[:data_url]).not_to eq(attachment.download_url)
     end
 

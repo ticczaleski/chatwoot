@@ -7,6 +7,7 @@ json.data_url attachment_data[:data_url]
 json.file_size attachment_data[:file_size]
 json.file_type attachment_data[:file_type]
 json.extension attachment_data[:extension]
+json.content_type attachment_data[:content_type]
 json.width attachment_data[:width]
 json.height attachment_data[:height]
 json.created_at attachment.message.created_at.to_i
