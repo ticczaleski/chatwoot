@@ -59,9 +59,15 @@ class Attachment < ApplicationRecord
   end
 
   # NOTE: for External services use this methods since redirect doesn't work effectively in a lot of cases
-  def download_url
+  #
+  # `expires_in` defaults to ActiveStorage's own default (5 minutes) because every existing
+  # caller (the outbound provider send services — WhatsApp Cloud, Twilio, Facebook, etc.) fetches
+  # this URL immediately, at send time. A caller that instead embeds this URL somewhere it will
+  # be read back later (e.g. a message's JSON, read whenever a client happens to open the
+  # conversation) must pass a much longer value, or the link will have already expired.
+  def download_url(expires_in: ActiveStorage.service_urls_expire_in)
     ActiveStorage::Current.url_options = Rails.application.routes.default_url_options if ActiveStorage::Current.url_options.blank?
-    file.attached? ? file.blob.url : ''
+    file.attached? ? file.blob.url(expires_in: expires_in) : ''
   end
 
   def thumb_url
@@ -131,8 +137,12 @@ class Attachment < ApplicationRecord
       # resolve reliably for that kind of external, non-browser fetch (see the NOTE on
       # download_url above) — confirmed live: a PDF attachment stuck loading indefinitely in
       # the Chatwoot mobile app while an image attachment on the same conversation rendered
-      # fine.
-      data_url: file_type.to_sym == :file ? download_url : file_url,
+      # fine. Needs a long expires_in (unlike download_url's other callers, which all fetch
+      # immediately at send time): this URL is embedded in the message JSON and may only
+      # actually be opened whenever a client later happens to load the conversation — a
+      # PDF that "loads and then instantly fails" after the follow-up fix for the redirect
+      # issue is this same class of bug, just with a 5-minute window instead of none.
+      data_url: file_type.to_sym == :file ? download_url(expires_in: 1.week) : file_url,
       thumb_url: thumb_url,
       file_size: file.byte_size,
       width: file.metadata[:width],
