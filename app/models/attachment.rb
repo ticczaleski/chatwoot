@@ -125,7 +125,14 @@ class Attachment < ApplicationRecord
     metadata = {
       extension: extension,
       content_type: file.content_type,
-      data_url: file_url,
+      # Generic documents (file_type: :file) use download_url here, not file_url: mobile
+      # clients fetch these as a one-shot download/open rather than rendering them inline the
+      # way an <img> tag follows a redirect transparently, and file_url's redirect doesn't
+      # resolve reliably for that kind of external, non-browser fetch (see the NOTE on
+      # download_url above) — confirmed live: a PDF attachment stuck loading indefinitely in
+      # the Chatwoot mobile app while an image attachment on the same conversation rendered
+      # fine.
+      data_url: file_type.to_sym == :file ? download_url : file_url,
       thumb_url: thumb_url,
       file_size: file.byte_size,
       width: file.metadata[:width],

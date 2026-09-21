@@ -312,6 +312,31 @@ RSpec.describe Attachment do
     end
   end
 
+  # Regression: a generic document (file_type: :file) attachment got stuck loading
+  # indefinitely and could not be downloaded in the Chatwoot mobile app, while an image
+  # attachment on the same conversation rendered fine. file_url's 301 redirect (used for
+  # every other file_type) doesn't resolve reliably for a mobile client's one-shot
+  # download/open, per the NOTE already on Attachment#download_url - so documents use that
+  # directly instead.
+  describe 'push_event_data data_url for documents vs images' do
+    it 'uses download_url (no redirect) for a generic document attachment' do
+      attachment = message.attachments.new(account_id: message.account_id, file_type: :file)
+      attachment.file.attach(io: StringIO.new('fake pdf'), filename: 'test.pdf', content_type: 'application/pdf')
+      attachment.save!
+
+      expect(attachment.push_event_data[:data_url]).to eq(attachment.download_url)
+      expect(attachment.push_event_data[:data_url]).not_to eq(attachment.file_url)
+    end
+
+    it 'still uses file_url (redirect) for an image attachment' do
+      attachment = message.attachments.new(account_id: message.account_id, file_type: :image)
+      attachment.file.attach(io: Rails.root.join('spec/assets/avatar.png').open, filename: 'avatar.png', content_type: 'image/png')
+      attachment.save!
+
+      expect(attachment.push_event_data[:data_url]).to eq(attachment.file_url)
+    end
+  end
+
   describe 'file size validation' do
     let(:attachment) { message.attachments.new(account_id: message.account_id, file_type: :image) }
 
