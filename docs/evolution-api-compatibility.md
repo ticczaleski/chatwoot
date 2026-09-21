@@ -320,9 +320,9 @@ same URL is independently confirmed working via `curl` and in-app for images,
 the remaining gap is specific to this document-download code path in the
 mobile app itself, not this integration's inbox/channel code.
 
-**Further isolation (same day):** ruled out two more candidate causes before
-concluding this is conclusively a mobile-app bug, not anything reachable from
-this integration or its infrastructure:
+**Further isolation (same day):** ruled out two more candidate causes. This is
+a strong client-side isolation, not a confirmed root cause — see the
+correction below for exactly what it does and doesn't prove:
 
 - **Filename** (the failing PDFs' names had spaces/special characters):
   uploaded a document with a plain ASCII filename (`Google.pdf`, stored as
@@ -335,14 +335,39 @@ this integration or its infrastructure:
   for the `Google-40.pdf` attachment directly in the phone's own mobile
   browser (same WiFi, same device) — opened normally.
 
-That last point is decisive: identical bytes, identical URL, identical
-device and network, succeed everywhere except inside the app's own
-`ReactNativeBlobUtil.fetch()` → `FileViewer.open()` flow for a PDF
-specifically. Confirming the underlying cause would need the native error
-`react-native-blob-util` swallows (Android `adb logcat` during a reproduction,
-not available in this session) or a fix/report against
-`chatwoot/chatwoot-mobile-app` upstream. No further action taken here; this
-is out of this integration's reach.
+**Correction (external review):** the code only ever emits the literal alert
+text `"File load error"` from `ReactNativeBlobUtil.fetch()`'s `.catch()` (the
+download/local-write step) — a failure in `FileViewer.open()` (the native
+PDF-preview step) instead shows `"Not able to preview file"`. So the observed
+alert text already narrows this to the download/write step, *before* any
+native PDF viewer is ever invoked — the phrasing above conflating both steps
+into one "flow" overstated what was actually isolated. The browser test
+proves the file, URL, certificate, and this account/device/network combination
+are all fine; it does not by itself distinguish *which part* of
+`ReactNativeBlobUtil.fetch()`'s work (the HTTP request, the local file write,
+or something in how `fileSrc`'s filename/query shape is parsed) is failing,
+since a browser's HTTP stack, storage, and native download handling are not
+the same code as `react-native-blob-util`'s. Concrete, actionable next steps
+for whoever picks this up in the mobile app (`chatwoot/chatwoot-mobile-app`):
+replace the swallowed `.catch(() => Alert.alert(...))` with actual error
+detail (message/stack, HTTP status, response headers, local file existence
+and size after the write) rather than relying solely on `adb logcat` — the
+JS-level rejection reason it discards may not surface natively at all; stop
+deriving the local cache filename by splitting the signed `fileSrc` URL
+(fragile for any signed-URL shape, proxy or otherwise) and instead build it
+from `attachment.id` + `extension`/`contentType`, which the app already has
+in its message payload; and add the Android 11+ `<queries>` manifest entry
+for `application/pdf` that `react-native-file-viewer` requires under
+`targetSdkVersion: 36` (present in this app), which is a separate, likely
+*next* failure once the download/write step itself is fixed.
+
+On this repo's side, PR #18 replaced both #16's redirect and #17's
+arbitrarily-expiring signed URL with ActiveStorage's proxy route
+(`rails_storage_proxy_url`) — no redirect, and a `signed_id` that never
+expires, which is strictly better than either prior attempt regardless of
+whether it changes the mobile outcome. No further action taken here on the
+mobile app itself; that repository is out of this integration's reach from
+this session.
 
 ## Staged enablement
 
