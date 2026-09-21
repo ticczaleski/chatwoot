@@ -74,7 +74,10 @@ on a canary/staging account with the `reactions` capability enabled.
       certificate issue documented below (see "Incident: 2026-09-21 — media
       attachments never reached WhatsApp")
 - [x] Document attachment — verified 2026-09-21 alongside the image, same
-      contact and fix
+      contact and fix, **for WhatsApp delivery only**; opening/downloading a
+      document attachment from the Chatwoot mobile app itself is a separate,
+      still-open problem — see the addendum on "Incident: 2026-09-21 — media
+      attachments never reached WhatsApp" below
 - [ ] Audio/voice note
 - [ ] Quoted reply to an incoming message
 - [ ] Quoted reply to an outgoing (agent-sent) message — this is the case Phase 4
@@ -281,6 +284,44 @@ future automation) will reject it outright. Any URL a server-to-server
 integration must fetch — not just click — needs a certificate chain that
 client actually trusts out of the box; "works for everyone in the office" is
 not evidence a service-to-service fetch will work.
+
+**Addendum, same day — document attachments still fail in the Chatwoot mobile
+app (unresolved, likely upstream):** fixing the certificate got WhatsApp
+delivery of images and documents working end-to-end, and got images
+rendering correctly in the Chatwoot mobile app too. Documents did not follow:
+opening/downloading a PDF from the mobile app first got stuck loading
+indefinitely (`app/models/attachment.rb`'s `file_metadata` was sending a
+redirect-based `file_url` for every non-image `file_type`), then — after
+switching documents to the direct, non-redirecting `download_url`
+(`ticczaleski/chatwoot#16`) — failed instead with a client-side "File load
+error" (`download_url`'s signed link defaults to a 5-minute expiry, wrong for
+something embedded in a message's JSON that a client may only open minutes
+later; fixed with a 1-week expiry in `ticczaleski/chatwoot#17`). After both
+fixes, the mobile app **still** shows "File load error" for documents, while
+images keep working and the same URL succeeds from `curl` with the correct
+`200`/`Content-Type`/`Content-Disposition`.
+
+Traced the failure into the mobile app's own source
+(`chatwoot/chatwoot-mobile-app`, `FileBubble.tsx`):
+
+```js
+ReactNativeBlobUtil.config({ overwrite: true, path: localFilePath, fileCache: true })
+  .fetch('GET', fileSrc)
+  .then(_result => setFileDownload(false))
+  .catch(() => {
+    Alert.alert('File load error');
+  });
+```
+
+This is a blanket `catch` — any failure (network, TLS, timeout, non-2xx)
+surfaces the exact same alert with no underlying detail, so nothing server-side
+can distinguish which of those it actually is from the outside. Since the
+same URL is independently confirmed working via `curl` and in-app for images,
+the remaining gap is specific to this document-download code path in the
+mobile app itself, not this integration's inbox/channel code — no further
+action taken here pending a way to actually inspect the failing request from
+the device (network trace, or opening the same link from the phone's own
+browser to isolate app-specific vs. broader mobile-network causes).
 
 ## Staged enablement
 
