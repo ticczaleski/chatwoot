@@ -178,8 +178,12 @@ class Message < ApplicationRecord
   # `reacted_by_current_user`; pass nil to omit it (e.g. no viewer context).
   def reactions_summary(current_actor = nil)
     message_reactions.group_by(&:emoji).map do |emoji, reactions|
+      # `polymorphic_name`, not `class.name`: a SuperAdmin is a `User` STI subclass, and the
+      # reaction's actor_type was stored as the STI base class ("User") by the polymorphic
+      # association on write. Comparing against the raw subclass name here would never match,
+      # silently hiding a SuperAdmin's own reaction as "not mine".
       reacted_by_current_user = current_actor.present? && reactions.any? do |reaction|
-        reaction.actor_type == current_actor.class.name && reaction.actor_id == current_actor.id
+        reaction.actor_type == current_actor.class.polymorphic_name && reaction.actor_id == current_actor.id
       end
 
       { emoji: emoji, count: reactions.size, reacted_by_current_user: reacted_by_current_user }

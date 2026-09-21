@@ -895,4 +895,40 @@ RSpec.describe Message do
       end
     end
   end
+
+  describe '#reactions_summary' do
+    let(:account) { create(:account) }
+    let(:conversation) { create(:conversation, account: account) }
+    let(:message) { create(:message, account: account, conversation: conversation, inbox: conversation.inbox) }
+    let(:agent) { create(:user, account: account) }
+
+    it 'flags reacted_by_current_user for the matching actor' do
+      create(:message_reaction, message: message, actor: agent, emoji: '👍')
+
+      summary = message.reactions_summary(agent)
+
+      expect(summary).to eq([{ emoji: '👍', count: 1, reacted_by_current_user: true }])
+    end
+
+    it 'does not flag reactions from a different actor' do
+      other_agent = create(:user, account: account)
+      create(:message_reaction, message: message, actor: other_agent, emoji: '👍')
+
+      summary = message.reactions_summary(agent)
+
+      expect(summary).to eq([{ emoji: '👍', count: 1, reacted_by_current_user: false }])
+    end
+
+    # A SuperAdmin is a `User` STI subclass; the reaction's actor_type is stored as the STI
+    # base class ("User") by the polymorphic association. Comparing against the literal
+    # subclass name here would never match, hiding a SuperAdmin's own reaction as "not mine".
+    it 'flags reacted_by_current_user for a SuperAdmin actor' do
+      super_admin = create(:super_admin)
+      create(:message_reaction, message: message, actor: super_admin, emoji: '👍')
+
+      summary = message.reactions_summary(super_admin)
+
+      expect(summary).to eq([{ emoji: '👍', count: 1, reacted_by_current_user: true }])
+    end
+  end
 end
