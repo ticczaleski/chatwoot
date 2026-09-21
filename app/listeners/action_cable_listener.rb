@@ -54,8 +54,23 @@ class ActionCableListener < BaseListener
     broadcast_reaction_event(event, MESSAGE_REACTION_UPDATED)
   end
 
+  # Unlike created/updated, the dispatched event carries plain data instead of the (already
+  # destroyed) MessageReaction object — see MessageReaction#dispatch_deleted_event — so this
+  # re-fetches the still-existing Message itself instead of going through broadcast_reaction_event.
   def message_reaction_deleted(event)
-    broadcast_reaction_event(event, MESSAGE_REACTION_DELETED)
+    data = event.data[:reaction_data]
+    message = Message.find_by(id: data[:message_id])
+    return if message.blank?
+
+    conversation = message.conversation
+    account = conversation.account
+    tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
+
+    broadcast(account, tokens, MESSAGE_REACTION_DELETED, {
+                message_id: message.id,
+                conversation_id: conversation.display_id,
+                reactions: reaction_summary_for_broadcast(message)
+              })
   end
 
   def message_updated(event)

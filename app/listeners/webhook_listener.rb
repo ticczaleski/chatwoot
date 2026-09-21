@@ -50,8 +50,18 @@ class WebhookListener < BaseListener
     deliver_reaction_webhook(event, __method__.to_s)
   end
 
+  # Unlike created/updated, the dispatched event carries plain data instead of the (already
+  # destroyed) MessageReaction object — see MessageReaction#dispatch_deleted_event — so this
+  # re-fetches the still-existing Message itself instead of going through deliver_reaction_webhook.
   def message_reaction_deleted(event)
-    deliver_reaction_webhook(event, __method__.to_s)
+    data = event.data[:reaction_data]
+    message = Message.find_by(id: data[:message_id])
+    return if message.blank?
+
+    inbox = message.inbox
+    payload = reaction_webhook_payload(data, message).merge(event: __method__.to_s)
+    deliver_account_webhooks(payload, inbox.account)
+    deliver_api_inbox_webhooks(payload, inbox) if reaction_capable_inbox?(inbox)
   end
 
   def webwidget_triggered(event)
@@ -158,8 +168,9 @@ class WebhookListener < BaseListener
     return if message.blank?
 
     inbox = message.inbox
+    data = { id: reaction.id, emoji: reaction.emoji, actor_type: reaction.actor_type, actor_id: reaction.actor_id }
 
-    payload = reaction_webhook_payload(reaction, message).merge(event: event_name)
+    payload = reaction_webhook_payload(data, message).merge(event: event_name)
     deliver_account_webhooks(payload, inbox.account)
     deliver_api_inbox_webhooks(payload, inbox) if reaction_capable_inbox?(inbox)
   end
@@ -168,12 +179,12 @@ class WebhookListener < BaseListener
     inbox.channel_type == 'Channel::Api' && inbox.channel.provider_capability?('reactions')
   end
 
-  def reaction_webhook_payload(reaction, message)
+  def reaction_webhook_payload(data, message)
     {
-      id: reaction.id,
-      emoji: reaction.emoji,
-      actor_type: reaction.actor_type,
-      actor_id: reaction.actor_id,
+      id: data[:id],
+      emoji: data[:emoji],
+      actor_type: data[:actor_type],
+      actor_id: data[:actor_id],
       message_id: message.id,
       source_id: message.source_id,
       conversation_id: message.conversation.display_id,

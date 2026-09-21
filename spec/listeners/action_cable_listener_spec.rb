@@ -120,8 +120,53 @@ describe ActionCableListener do
       include_examples 'a reaction broadcast', :message_reaction_updated, :'message_reaction.updated'
     end
 
+    # #message_reaction_deleted is deliberately NOT covered by the 'a reaction broadcast'
+    # shared examples above: MessageReaction#dispatch_deleted_event dispatches plain
+    # `reaction_data` instead of the (already destroyed) record, so the event built here must
+    # match that shape - not `message_reaction: reaction` - and the remaining reactions summary
+    # is recomputed live off the still-existing Message, not carried in the event.
     describe '#message_reaction_deleted' do
-      include_examples 'a reaction broadcast', :message_reaction_deleted, :'message_reaction.deleted'
+      it 'broadcasts the reactions remaining on the message after this one was removed' do
+        create(:message_reaction, message: message, actor: admin, emoji: '👍')
+        reaction = create(:message_reaction, message: message, actor: agent, emoji: '😀')
+        reaction_data = { id: reaction.id, emoji: '😀', actor_type: 'User', actor_id: agent.id, message_id: message.id }
+        reaction.destroy!
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now, reaction_data: reaction_data)
+
+        expect(ActionCableBroadcastJob).to receive(:perform_later).with(
+          a_collection_containing_exactly(agent.pubsub_token, admin.pubsub_token, conversation.contact_inbox.pubsub_token),
+          'message_reaction.deleted',
+          {
+            message_id: message.id,
+            conversation_id: conversation.display_id,
+            reactions: [{ emoji: '👍', count: 1, user_ids: [admin.id] }],
+            account_id: account.id
+          }
+        )
+
+        listener.message_reaction_deleted(event)
+      end
+
+      it 'does not broadcast when the parent message no longer exists' do
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now,
+                                  reaction_data: { id: 999, emoji: '👍', actor_type: 'User', actor_id: agent.id, message_id: -1 })
+
+        expect(ActionCableBroadcastJob).not_to receive(:perform_later)
+        expect { listener.message_reaction_deleted(event) }.not_to raise_error
+      end
+
+      # The exact production failure this whole change fixes: a destroyed MessageReaction can
+      # no longer be resolved via GlobalID, so nothing here may attempt to re-fetch it - only
+      # the still-existing Message may be looked up.
+      it 'broadcasts correctly even though the MessageReaction row no longer exists at all' do
+        reaction_data = { id: 999, emoji: '👍', actor_type: 'User', actor_id: agent.id, message_id: message.id }
+        expect(MessageReaction.find_by(id: reaction_data[:id])).to be_nil
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now, reaction_data: reaction_data)
+
+        expect(ActionCableBroadcastJob).to receive(:perform_later).once
+
+        expect { listener.message_reaction_deleted(event) }.not_to raise_error
+      end
     end
   end
 

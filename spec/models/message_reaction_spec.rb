@@ -144,11 +144,38 @@ RSpec.describe MessageReaction do
       reaction.touch
     end
 
-    it 'dispatches MESSAGE_REACTION_DELETED on destroy' do
+    # Regression: this must NOT dispatch the ActiveRecord object (unlike created/updated
+    # above). EventDispatcherJob (the async webhook path) serializes it as a GlobalID and only
+    # resolves it back when the job actually runs — by which point this row is already gone,
+    # so deserialization raises and the job is silently discarded, and the delete never reaches
+    # Evolution's webhook even though it reaches ActionCable (dispatched synchronously, no
+    # serialization). Plain, already-destructured data sidesteps this entirely.
+    it 'dispatches MESSAGE_REACTION_DELETED on destroy with plain data, not the destroyed record' do
+      reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
+      reaction_id = reaction.id
+
+      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(
+        Events::Types::MESSAGE_REACTION_DELETED,
+        kind_of(Time),
+        reaction_data: { id: reaction_id, emoji: '👍', actor_type: 'User', actor_id: agent.id, message_id: message.id }
+      )
+      reaction.destroy!
+    end
+
+    it 'dispatches deleted event data that survives ActiveJob GlobalID (de)serialization' do
       reaction = create(:message_reaction, message: message, actor: agent, emoji: '👍')
 
-      expect(Rails.configuration.dispatcher).to receive(:dispatch).with(Events::Types::MESSAGE_REACTION_DELETED, kind_of(Time), hash_including(:message_reaction))
+      captured = nil
+      allow(Rails.configuration.dispatcher).to receive(:dispatch) do |_event_name, _time, **data|
+        captured = data
+      end
+
       reaction.destroy!
+
+      # Simulate what ActiveJob does to job arguments: round-trip through its serializer. A
+      # GlobalID reference to the now-destroyed record would raise here; plain data does not.
+      serialized = ActiveJob::Arguments.serialize([captured])
+      expect { ActiveJob::Arguments.deserialize(serialized) }.not_to raise_error
     end
   end
 end
