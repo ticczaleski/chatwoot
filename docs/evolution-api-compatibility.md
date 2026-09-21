@@ -318,10 +318,31 @@ surfaces the exact same alert with no underlying detail, so nothing server-side
 can distinguish which of those it actually is from the outside. Since the
 same URL is independently confirmed working via `curl` and in-app for images,
 the remaining gap is specific to this document-download code path in the
-mobile app itself, not this integration's inbox/channel code — no further
-action taken here pending a way to actually inspect the failing request from
-the device (network trace, or opening the same link from the phone's own
-browser to isolate app-specific vs. broader mobile-network causes).
+mobile app itself, not this integration's inbox/channel code.
+
+**Further isolation (same day):** ruled out two more candidate causes before
+concluding this is conclusively a mobile-app bug, not anything reachable from
+this integration or its infrastructure:
+
+- **Filename** (the failing PDFs' names had spaces/special characters):
+  uploaded a document with a plain ASCII filename (`Google.pdf`, stored as
+  `Google-40.pdf`) — same "File load error".
+- **File type vs. plain text**: a `.txt` attachment through the *exact same*
+  `FileBubblePreview` component opened normally on the same device, same
+  network, same session — so this isn't "documents are broken," specifically
+  PDFs are.
+- **The file/URL/network path itself**: opened the same signed `download_url`
+  for the `Google-40.pdf` attachment directly in the phone's own mobile
+  browser (same WiFi, same device) — opened normally.
+
+That last point is decisive: identical bytes, identical URL, identical
+device and network, succeed everywhere except inside the app's own
+`ReactNativeBlobUtil.fetch()` → `FileViewer.open()` flow for a PDF
+specifically. Confirming the underlying cause would need the native error
+`react-native-blob-util` swallows (Android `adb logcat` during a reproduction,
+not available in this session) or a fix/report against
+`chatwoot/chatwoot-mobile-app` upstream. No further action taken here; this
+is out of this integration's reach.
 
 ## Staged enablement
 
