@@ -69,8 +69,12 @@ Run each row in both directions (agent → WhatsApp contact, and WhatsApp contac
 on a canary/staging account with the `reactions` capability enabled.
 
 - [ ] Plain text message
-- [ ] Image attachment
-- [ ] Document attachment
+- [x] Image attachment — verified 2026-09-21 against a real WhatsApp contact
+      (+5555999703107), agent → contact, after fixing the `FRONTEND_URL`
+      certificate issue documented below (see "Incident: 2026-09-21 — media
+      attachments never reached WhatsApp")
+- [x] Document attachment — verified 2026-09-21 alongside the image, same
+      contact and fix
 - [ ] Audio/voice note
 - [ ] Quoted reply to an incoming message
 - [ ] Quoted reply to an outgoing (agent-sent) message — this is the case Phase 4
@@ -230,6 +234,53 @@ before it can rely on it for a DB lookup — `instance` is not a fully-populated
 start). A unit test that mocks past this assignment can't catch a missing one;
 verifying the reaction bridge end-to-end against a real deployment (not just
 its unit tests) is what actually surfaced this.
+
+## Incident: 2026-09-21 — media attachments never reached WhatsApp (infra, not code)
+
+**What happened:** sending an image or PDF attachment from the Chatwoot
+dashboard silently failed to reach WhatsApp — no error surfaced in Chatwoot's
+UI (a document attachment even *looked* fine there, since Chatwoot's own
+preview never needed to re-fetch the file), but the message's `source_id`
+stayed empty, meaning Evolution never registered a WhatsApp key for it at all.
+
+**Root cause:** Evolution's outbound attachment path
+(`ChatwootService#sendAttachment`) fetches the attachment's `data_url` — an
+Active Storage URL built from Chatwoot's `FRONTEND_URL`
+(`https://chat-ti.cczaleski.com.br` at the time) — before it can hand the
+bytes to Baileys. That hostname is **not a Cloudflare-managed zone** (its NS
+was never delegated to Cloudflare; DNS stayed on registro.br), so Traefik has
+no way to obtain a real certificate for it and falls back to a self-signed
+one. Every browser on the corporate network trusts that self-signed cert via
+an internally-distributed root CA, so nobody watching from a browser ever
+saw a problem — but Evolution's Node.js process has no such CA installed, so
+its `fetch`/`axios` call rejected the connection with `DEPTH_ZERO_SELF_SIGNED_CERT`
+and the attachment was never sent. Reproduced directly: `curl`/`node https.get`
+from inside the Evolution container against the old hostname failed
+identically; the same call against a Cloudflare-backed hostname succeeded.
+
+**Why this wasn't specific to reactions or any code in this plan's phases:**
+it affects *any* outbound attachment on *any* inbox, unconditionally — a pure
+infrastructure/certificate gap, not a capability-gated code path. It was only
+discovered now because media hadn't been manually verified end-to-end before
+(see "Manual verification" above being originally unchecked-by-design).
+
+**Fix applied:** `chat-ti.zaleski.pro` already had a working Cloudflare
+Tunnel route to `chatwoot-ti_rails:3000` (planned but never pointed at, per
+the stack file's own comments) with a valid, publicly-trusted certificate
+(Cloudflare's edge, issued by Google Trust Services). Switched Chatwoot's
+`FRONTEND_URL` to that domain — every attachment URL Chatwoot generates now
+resolves to it, so Evolution's fetch succeeds without needing any custom CA
+installed anywhere. The original `chat-ti.cczaleski.com.br` router/hostname
+was left in place (still self-signed) for continuity; only `FRONTEND_URL`
+(and therefore what new attachment links point to) changed.
+
+**Lesson:** a self-signed certificate that every human's browser silently
+trusts (via a pre-installed corporate root CA) is invisible to anyone testing
+by hand, but every non-browser HTTP client (this integration, curl, any
+future automation) will reject it outright. Any URL a server-to-server
+integration must fetch — not just click — needs a certificate chain that
+client actually trusts out of the box; "works for everyone in the office" is
+not evidence a service-to-service fetch will work.
 
 ## Staged enablement
 
