@@ -319,13 +319,26 @@ RSpec.describe Attachment do
   # download/open, per the NOTE already on Attachment#download_url - so documents use that
   # directly instead.
   describe 'push_event_data data_url for documents vs images' do
-    it 'uses download_url (no redirect) for a generic document attachment' do
+    it 'uses download_url (no redirect) with a long expiry for a generic document attachment' do
       attachment = message.attachments.new(account_id: message.account_id, file_type: :file)
       attachment.file.attach(io: StringIO.new('fake pdf'), filename: 'test.pdf', content_type: 'application/pdf')
       attachment.save!
 
-      expect(attachment.push_event_data[:data_url]).to eq(attachment.download_url)
+      expect(attachment.push_event_data[:data_url]).to eq(attachment.download_url(expires_in: 1.week))
       expect(attachment.push_event_data[:data_url]).not_to eq(attachment.file_url)
+    end
+
+    # Regression: download_url's other callers (WhatsApp Cloud, Twilio, etc.) all fetch the
+    # URL immediately at send time, so its short default expiry is fine for them - but the
+    # same short expiry baked into a message's JSON meant the document "loaded" fine and then
+    # failed a few minutes later with a client-side "File load error" once the signed URL
+    # expired, whenever the client actually got around to opening it.
+    it 'gives the document a materially longer expiry than download_url\'s own default' do
+      attachment = message.attachments.new(account_id: message.account_id, file_type: :file)
+      attachment.file.attach(io: StringIO.new('fake pdf'), filename: 'test.pdf', content_type: 'application/pdf')
+      attachment.save!
+
+      expect(attachment.push_event_data[:data_url]).not_to eq(attachment.download_url)
     end
 
     it 'still uses file_url (redirect) for an image attachment' do
