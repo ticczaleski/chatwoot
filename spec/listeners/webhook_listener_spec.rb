@@ -200,8 +200,77 @@ describe WebhookListener do
       include_examples 'a reaction event', :message_reaction_updated, :'message_reaction.updated'
     end
 
+    # #message_reaction_deleted is deliberately NOT covered by the 'a reaction event' shared
+    # examples above: MessageReaction#dispatch_deleted_event dispatches plain `reaction_data`
+    # instead of the (already destroyed) record, so the event built here must match that shape -
+    # not `message_reaction: reaction`, which is exactly the shape that broke delivery in
+    # production (see MessageReaction#dispatch_deleted_event for the full explanation).
     describe '#message_reaction_deleted' do
-      include_examples 'a reaction event', :message_reaction_deleted, :'message_reaction.deleted'
+      let(:reaction_data) { { id: 999, emoji: '👍', actor_type: 'User', actor_id: user.id, message_id: capable_message.id } }
+
+      it "delivers to a capable API inbox's webhook using only the dispatched data, with the message already destroyed" do
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now, reaction_data: reaction_data)
+
+        expect(WebhookJob).to receive(:perform_later).with(
+          capable_channel_api.webhook_url,
+          hash_including(
+            event: 'message_reaction_deleted',
+            message_id: capable_message.id,
+            source_id: 'WAID:parent-1',
+            emoji: '👍'
+          ),
+          :api_inbox_webhook,
+          secret: capable_channel_api.secret, delivery_id: instance_of(String)
+        ).once
+
+        listener.message_reaction_deleted(event)
+      end
+
+      it 'does not deliver to an API inbox that lacks the reactions capability' do
+        channel_api = create(:channel_api, account: account)
+        api_inbox = channel_api.inbox
+        api_conversation = create(:conversation, account: account, inbox: api_inbox)
+        api_message = create(:message, account: account, inbox: api_inbox, conversation: api_conversation)
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now,
+                                  reaction_data: reaction_data.merge(message_id: api_message.id))
+
+        expect(WebhookJob).not_to receive(:perform_later).with(channel_api.webhook_url, any_args)
+
+        listener.message_reaction_deleted(event)
+      end
+
+      it 'still delivers to a subscribed account-level webhook regardless of inbox capability' do
+        webhook = create(:webhook, subscriptions: ['message_reaction_deleted'], inbox: inbox, account: account)
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now,
+                                  reaction_data: reaction_data.merge(message_id: message.id))
+
+        expect(WebhookJob).to receive(:perform_later).with(
+          webhook.url, hash_including(event: 'message_reaction_deleted'), :account_webhook,
+          secret: webhook.secret, delivery_id: instance_of(String)
+        ).once
+
+        listener.message_reaction_deleted(event)
+      end
+
+      it 'acknowledges without error when the parent message no longer exists' do
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now,
+                                  reaction_data: reaction_data.merge(message_id: -1))
+
+        expect(WebhookJob).not_to receive(:perform_later)
+        expect { listener.message_reaction_deleted(event) }.not_to raise_error
+      end
+
+      # The exact production failure this whole change fixes: a destroyed MessageReaction can
+      # no longer be resolved via GlobalID, so nothing here may attempt to re-fetch it - only
+      # the still-existing Message may be looked up.
+      it 'delivers correctly even though the MessageReaction row no longer exists at all' do
+        expect(MessageReaction.find_by(id: reaction_data[:id])).to be_nil
+        event = Events::Base.new(:'message_reaction.deleted', Time.zone.now, reaction_data: reaction_data)
+
+        expect(WebhookJob).to receive(:perform_later).once
+
+        expect { listener.message_reaction_deleted(event) }.not_to raise_error
+      end
     end
   end
 

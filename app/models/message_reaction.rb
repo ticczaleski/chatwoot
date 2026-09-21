@@ -48,21 +48,32 @@ class MessageReaction < ApplicationRecord
   end
 
   def dispatch_created_event
-    dispatch_reaction_event(Events::Types::MESSAGE_REACTION_CREATED)
+    dispatch_reaction_event(Events::Types::MESSAGE_REACTION_CREATED, message_reaction: self)
   end
 
   def dispatch_updated_event
-    dispatch_reaction_event(Events::Types::MESSAGE_REACTION_UPDATED)
+    dispatch_reaction_event(Events::Types::MESSAGE_REACTION_UPDATED, message_reaction: self)
   end
 
+  # Passing the ActiveRecord object here (as create/update do above) breaks async delivery:
+  # the async dispatcher's job serializes it as a GlobalID and only re-resolves it when the job
+  # actually runs, by which point this row no longer exists (it's already destroyed), so
+  # deserialization raises and the job is silently discarded. The delete still reaches
+  # ActionCable (dispatched synchronously, no serialization involved) but never reaches
+  # Evolution's webhook — so WhatsApp keeps showing a reaction Chatwoot has already removed.
+  # Passing plain, already-destructured data instead sidesteps this (same fix
+  # Contact#dispatch_destroy_event already applies for the same reason).
   def dispatch_deleted_event
-    dispatch_reaction_event(Events::Types::MESSAGE_REACTION_DELETED)
+    dispatch_reaction_event(
+      Events::Types::MESSAGE_REACTION_DELETED,
+      reaction_data: { id: id, emoji: emoji, actor_type: actor_type, actor_id: actor_id, message_id: message_id }
+    )
   end
 
-  # The listener resolves the target message/inbox itself from message_reaction; this only
-  # ever dispatches — whether it's actually delivered anywhere is decided at the listener,
-  # gated on the target inbox's 'reactions' provider capability.
-  def dispatch_reaction_event(event_name)
-    Rails.configuration.dispatcher.dispatch(event_name, Time.zone.now, message_reaction: self)
+  # The listener resolves the target message/inbox itself from the given data; this only ever
+  # dispatches — whether it's actually delivered anywhere is decided at the listener, gated on
+  # the target inbox's 'reactions' provider capability.
+  def dispatch_reaction_event(event_name, data)
+    Rails.configuration.dispatcher.dispatch(event_name, Time.zone.now, **data)
   end
 end
