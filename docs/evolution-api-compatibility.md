@@ -69,8 +69,15 @@ Run each row in both directions (agent → WhatsApp contact, and WhatsApp contac
 on a canary/staging account with the `reactions` capability enabled.
 
 - [ ] Plain text message
-- [ ] Image attachment
-- [ ] Document attachment
+- [x] Image attachment — verified 2026-09-21 against a real WhatsApp contact
+      (+5555999703107), agent → contact, after fixing the `FRONTEND_URL`
+      certificate issue documented below (see "Incident: 2026-09-21 — media
+      attachments never reached WhatsApp")
+- [x] Document attachment — verified 2026-09-21 alongside the image, same
+      contact and fix, **for WhatsApp delivery only**; opening/downloading a
+      document attachment from the Chatwoot mobile app itself is a separate,
+      still-open problem — see the addendum on "Incident: 2026-09-21 — media
+      attachments never reached WhatsApp" below
 - [ ] Audio/voice note
 - [ ] Quoted reply to an incoming message
 - [ ] Quoted reply to an outgoing (agent-sent) message — this is the case Phase 4
@@ -230,6 +237,137 @@ before it can rely on it for a DB lookup — `instance` is not a fully-populated
 start). A unit test that mocks past this assignment can't catch a missing one;
 verifying the reaction bridge end-to-end against a real deployment (not just
 its unit tests) is what actually surfaced this.
+
+## Incident: 2026-09-21 — media attachments never reached WhatsApp (infra, not code)
+
+**What happened:** sending an image or PDF attachment from the Chatwoot
+dashboard silently failed to reach WhatsApp — no error surfaced in Chatwoot's
+UI (a document attachment even *looked* fine there, since Chatwoot's own
+preview never needed to re-fetch the file), but the message's `source_id`
+stayed empty, meaning Evolution never registered a WhatsApp key for it at all.
+
+**Root cause:** Evolution's outbound attachment path
+(`ChatwootService#sendAttachment`) fetches the attachment's `data_url` — an
+Active Storage URL built from Chatwoot's `FRONTEND_URL`
+(`https://chat-ti.cczaleski.com.br` at the time) — before it can hand the
+bytes to Baileys. That hostname is **not a Cloudflare-managed zone** (its NS
+was never delegated to Cloudflare; DNS stayed on registro.br), so Traefik has
+no way to obtain a real certificate for it and falls back to a self-signed
+one. Every browser on the corporate network trusts that self-signed cert via
+an internally-distributed root CA, so nobody watching from a browser ever
+saw a problem — but Evolution's Node.js process has no such CA installed, so
+its `fetch`/`axios` call rejected the connection with `DEPTH_ZERO_SELF_SIGNED_CERT`
+and the attachment was never sent. Reproduced directly: `curl`/`node https.get`
+from inside the Evolution container against the old hostname failed
+identically; the same call against a Cloudflare-backed hostname succeeded.
+
+**Why this wasn't specific to reactions or any code in this plan's phases:**
+it affects *any* outbound attachment on *any* inbox, unconditionally — a pure
+infrastructure/certificate gap, not a capability-gated code path. It was only
+discovered now because media hadn't been manually verified end-to-end before
+(see "Manual verification" above being originally unchecked-by-design).
+
+**Fix applied:** `chat-ti.zaleski.pro` already had a working Cloudflare
+Tunnel route to `chatwoot-ti_rails:3000` (planned but never pointed at, per
+the stack file's own comments) with a valid, publicly-trusted certificate
+(Cloudflare's edge, issued by Google Trust Services). Switched Chatwoot's
+`FRONTEND_URL` to that domain — every attachment URL Chatwoot generates now
+resolves to it, so Evolution's fetch succeeds without needing any custom CA
+installed anywhere. The original `chat-ti.cczaleski.com.br` router/hostname
+was left in place (still self-signed) for continuity; only `FRONTEND_URL`
+(and therefore what new attachment links point to) changed.
+
+**Lesson:** a self-signed certificate that every human's browser silently
+trusts (via a pre-installed corporate root CA) is invisible to anyone testing
+by hand, but every non-browser HTTP client (this integration, curl, any
+future automation) will reject it outright. Any URL a server-to-server
+integration must fetch — not just click — needs a certificate chain that
+client actually trusts out of the box; "works for everyone in the office" is
+not evidence a service-to-service fetch will work.
+
+**Addendum, same day — document attachments still fail in the Chatwoot mobile
+app (unresolved, likely upstream):** fixing the certificate got WhatsApp
+delivery of images and documents working end-to-end, and got images
+rendering correctly in the Chatwoot mobile app too. Documents did not follow:
+opening/downloading a PDF from the mobile app first got stuck loading
+indefinitely (`app/models/attachment.rb`'s `file_metadata` was sending a
+redirect-based `file_url` for every non-image `file_type`), then — after
+switching documents to the direct, non-redirecting `download_url`
+(`ticczaleski/chatwoot#16`) — failed instead with a client-side "File load
+error" (`download_url`'s signed link defaults to a 5-minute expiry, wrong for
+something embedded in a message's JSON that a client may only open minutes
+later; fixed with a 1-week expiry in `ticczaleski/chatwoot#17`). After both
+fixes, the mobile app **still** shows "File load error" for documents, while
+images keep working and the same URL succeeds from `curl` with the correct
+`200`/`Content-Type`/`Content-Disposition`.
+
+Traced the failure into the mobile app's own source
+(`chatwoot/chatwoot-mobile-app`, `FileBubble.tsx`):
+
+```js
+ReactNativeBlobUtil.config({ overwrite: true, path: localFilePath, fileCache: true })
+  .fetch('GET', fileSrc)
+  .then(_result => setFileDownload(false))
+  .catch(() => {
+    Alert.alert('File load error');
+  });
+```
+
+This is a blanket `catch` — any failure (network, TLS, timeout, non-2xx)
+surfaces the exact same alert with no underlying detail, so nothing server-side
+can distinguish which of those it actually is from the outside. Since the
+same URL is independently confirmed working via `curl` and in-app for images,
+the remaining gap is specific to this document-download code path in the
+mobile app itself, not this integration's inbox/channel code.
+
+**Further isolation (same day):** ruled out two more candidate causes. This is
+a strong client-side isolation, not a confirmed root cause — see the
+correction below for exactly what it does and doesn't prove:
+
+- **Filename** (the failing PDFs' names had spaces/special characters):
+  uploaded a document with a plain ASCII filename (`Google.pdf`, stored as
+  `Google-40.pdf`) — same "File load error".
+- **File type vs. plain text**: a `.txt` attachment through the *exact same*
+  `FileBubblePreview` component opened normally on the same device, same
+  network, same session — so this isn't "documents are broken," specifically
+  PDFs are.
+- **The file/URL/network path itself**: opened the same signed `download_url`
+  for the `Google-40.pdf` attachment directly in the phone's own mobile
+  browser (same WiFi, same device) — opened normally.
+
+**Correction (external review):** the code only ever emits the literal alert
+text `"File load error"` from `ReactNativeBlobUtil.fetch()`'s `.catch()` (the
+download/local-write step) — a failure in `FileViewer.open()` (the native
+PDF-preview step) instead shows `"Not able to preview file"`. So the observed
+alert text already narrows this to the download/write step, *before* any
+native PDF viewer is ever invoked — the phrasing above conflating both steps
+into one "flow" overstated what was actually isolated. The browser test
+proves the file, URL, certificate, and this account/device/network combination
+are all fine; it does not by itself distinguish *which part* of
+`ReactNativeBlobUtil.fetch()`'s work (the HTTP request, the local file write,
+or something in how `fileSrc`'s filename/query shape is parsed) is failing,
+since a browser's HTTP stack, storage, and native download handling are not
+the same code as `react-native-blob-util`'s. Concrete, actionable next steps
+for whoever picks this up in the mobile app (`chatwoot/chatwoot-mobile-app`):
+replace the swallowed `.catch(() => Alert.alert(...))` with actual error
+detail (message/stack, HTTP status, response headers, local file existence
+and size after the write) rather than relying solely on `adb logcat` — the
+JS-level rejection reason it discards may not surface natively at all; stop
+deriving the local cache filename by splitting the signed `fileSrc` URL
+(fragile for any signed-URL shape, proxy or otherwise) and instead build it
+from `attachment.id` + `extension`/`contentType`, which the app already has
+in its message payload; and add the Android 11+ `<queries>` manifest entry
+for `application/pdf` that `react-native-file-viewer` requires under
+`targetSdkVersion: 36` (present in this app), which is a separate, likely
+*next* failure once the download/write step itself is fixed.
+
+On this repo's side, PR #18 replaced both #16's redirect and #17's
+arbitrarily-expiring signed URL with ActiveStorage's proxy route
+(`rails_storage_proxy_url`) — no redirect, and a `signed_id` that never
+expires, which is strictly better than either prior attempt regardless of
+whether it changes the mobile outcome. No further action taken here on the
+mobile app itself; that repository is out of this integration's reach from
+this session.
 
 ## Staged enablement
 
