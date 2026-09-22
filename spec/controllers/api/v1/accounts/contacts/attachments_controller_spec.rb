@@ -51,7 +51,9 @@ RSpec.describe '/api/v1/accounts/{account.id}/contacts/:id/attachments', type: :
           payload = response.parsed_body['payload']
           attachment = payload.find { |a| a['conversation_id'] == conversation.display_id }
           expect(attachment).not_to be_nil
-          expect(attachment).to include('id', 'message_id', 'data_url', 'file_type', 'created_at', 'sender')
+          expect(attachment).to include('id', 'message_id', 'data_url', 'file_type', 'content_type', 'created_at', 'sender')
+          expect(attachment['content_type']).to eq('image/png')
+          expect(attachment['data_url']).to be_present
         end
       end
 
