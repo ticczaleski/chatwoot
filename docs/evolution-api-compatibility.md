@@ -369,6 +369,31 @@ whether it changes the mobile outcome. No further action taken here on the
 mobile app itself; that repository is out of this integration's reach from
 this session.
 
+**Implementation status (September 22, 2026):** PR #19 was merged into this
+repository's `develop` branch and locks the attachment API's `content_type`
+contract with request-level coverage; it does not add another backend fix.
+A mobile patch was also implemented and verified in a separate, local-only
+clone of `chatwoot/chatwoot-mobile-app`, on branch
+`fix/mobile-pdf-delivery`. It:
+
+- creates a stable cache key from attachment/message metadata and the URL's
+  origin/path, without depending on an expiring signed query;
+- downloads only when the document is opened, validates the HTTP status and
+  non-empty local file, then atomically moves the partial download into the
+  cache;
+- reports download and native-preview failures separately, retaining useful
+  diagnostics without including signed URL credentials; and
+- declares Android package visibility for handlers of `application/pdf`.
+
+The mobile test suite passed locally (58 suites, 423 tests), along with the
+scoped lint and Expo configuration checks. This patch has **not** been pushed,
+forked, submitted upstream, built for distribution, or validated on physical
+Android/iOS devices. Therefore the PDF issue is not considered released or
+resolved for users of the official app. The next actionable step, when
+authorized, is to produce local Android/iOS builds and test PDF and text-file
+attachments on real devices; if a failure remains, collect `adb logcat` or
+Xcode device logs from that patched build.
+
 ## Staged enablement
 
 Deploy in this order, verifying each stage before proceeding:
