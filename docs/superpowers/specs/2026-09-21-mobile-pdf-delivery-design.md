@@ -8,18 +8,16 @@ Make document attachments, especially PDFs, reliably downloadable and previewabl
 
 This work is delivered as two independent changes:
 
-1. The Chatwoot backend publishes a stable, non-redirecting document URL and complete MIME metadata.
+1. The Chatwoot backend adds request-level regression coverage for the stable proxy URL and MIME metadata already merged in PR #18.
 2. The Chatwoot mobile app downloads documents to a deterministic, valid local filename, reports actionable failures, and declares Android PDF viewer visibility.
 
 Outbound provider integrations continue using `Attachment#download_url` and its existing short-lived direct storage URL. Images, audio, and video retain their current URL behavior.
 
 ## Backend design
 
-For attachments whose `file_type` is `file`, `Attachment#file_metadata` will use the Active Storage proxy route rather than `file_url` or a direct service URL. The proxy route gives mobile clients a stable Chatwoot URL, returns the bytes without a storage redirect, and avoids an arbitrary seven-day lifetime. Other callers of `download_url` remain unchanged.
+PR #18 already changed attachments whose `file_type` is `file` to use the Active Storage proxy route rather than `file_url` or a direct service URL. It also serialized the existing `content_type` value alongside `extension`. This work must not reimplement or alter that production behavior.
 
-The API attachment partial will serialize the existing `content_type` value alongside `extension`. This makes the REST response consistent with `push_event_data` and gives clients an authoritative MIME type.
-
-Model and request/view tests will establish that document URLs use the proxy route, do not call the direct download URL, and include `content_type`. Existing image behavior will remain covered.
+The backend patch is limited to request-level regression coverage proving that the attachment API exposes `content_type`. PR #18's existing model coverage remains responsible for proxy URL selection and existing image behavior.
 
 ## Mobile design
 
@@ -54,4 +52,4 @@ Mobile verification covers filename/cache-path normalization, successful and fai
 
 ## Delivery
 
-The backend and mobile changes live on separate branches and are suitable for separate pull requests. Neither branch will include generated build products, credentials, downloaded attachments, or unrelated working-tree changes.
+The backend and mobile changes live on separate local branches and are suitable for separate pull requests. The mobile repository may be cloned and changed locally, but forking, pushing, or opening an external pull request requires a new, explicit authorization. Neither branch will include generated build products, credentials, downloaded attachments, or unrelated working-tree changes.
