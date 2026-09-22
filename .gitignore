@@ -97,6 +97,7 @@ yarn-debug.log*
 .codex/
 .claude/
 CLAUDE.local.md
+docs/superpowers/
 
 # Histoire deployment
 .netlify
