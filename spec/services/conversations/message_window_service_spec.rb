@@ -51,6 +51,16 @@ RSpec.describe Conversations::MessageWindowService do
         expect(service.can_reply?).to be true
       end
     end
+
+    context 'when ignore_messaging_window is enabled' do
+      it 'returns true even outside of agent_reply_time_window' do
+        channel = create(:channel_api, additional_attributes: { agent_reply_time_window: '12', ignore_messaging_window: 'true' })
+        conversation = create(:conversation, inbox: channel.inbox)
+        create(:message, account: conversation.account, inbox: channel.inbox, conversation: conversation, created_at: 13.hours.ago)
+
+        expect(described_class.new(conversation).can_reply?).to be true
+      end
+    end
   end
 
   describe 'on Facebook channels' do
