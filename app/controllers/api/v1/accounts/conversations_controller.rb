@@ -159,6 +159,11 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
     ::Conversations::UnreadCounts::Notifier.new(@conversation).perform
     ::Conversations::UnreadCounts::FilteredCountInvalidator.new(Current.account).conversation_changed!
+
+    # update_columns skips model callbacks, so no event told other open dashboards that this
+    # conversation was read (or marked unread) — they kept showing a stale unread state until
+    # reloaded. Reuse conversation.read, whose only listener is ActionCable.
+    Rails.configuration.dispatcher.dispatch(::Events::Types::CONVERSATION_READ, Time.zone.now, conversation: @conversation)
   end
 
   def should_update_last_seen?

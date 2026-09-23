@@ -7,13 +7,22 @@ class Conversations::MessageWindowService
   end
 
   def can_reply?
-    return true if @conversation.inbox.channel.additional_attributes&.dig('ignore_messaging_window').to_s == 'true'
+    return true if ignore_messaging_window?
     return true if messaging_window.blank?
 
     last_message_in_messaging_window?(messaging_window)
   end
 
   private
+
+  # Only Channel::Api has an additional_attributes column; other channels (web widget, email, ...)
+  # don't respond to it, so they never opt out of their messaging window this way.
+  def ignore_messaging_window?
+    channel = @conversation.inbox.channel
+    return false unless channel.respond_to?(:additional_attributes)
+
+    channel.additional_attributes&.dig('ignore_messaging_window').to_s == 'true'
+  end
 
   def messaging_window
     case @conversation.inbox.channel_type

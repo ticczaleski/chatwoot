@@ -898,6 +898,37 @@ RSpec.describe 'Conversations API', type: :request do
         expect(conversation.reload.assignee_last_seen_at).not_to be_nil
       end
 
+      it 'broadcasts conversation.read so other open dashboards drop the unread state' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+        conversation.update!(agent_last_seen_at: nil)
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          'conversation.read',
+          kind_of(Time),
+          hash_including(conversation: have_attributes(id: conversation.id, agent_last_seen_at: be_present))
+        )
+      end
+
+      it 'does not broadcast conversation.read when the update is throttled' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+        conversation.update!(agent_last_seen_at: 30.minutes.ago, assignee_last_seen_at: 30.minutes.ago)
+        # rubocop:disable Rails/SkipsModelValidations
+        conversation.messages.update_all(created_at: 1.hour.ago)
+        # rubocop:enable Rails/SkipsModelValidations
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/update_last_seen",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(Rails.configuration.dispatcher).not_to have_received(:dispatch).with('conversation.read', any_args)
+      end
+
       it 'marks unread notifications as read when updating last seen' do
         allow(Rails.configuration.dispatcher).to receive(:dispatch)
         notification = create(:notification, account: account, user: agent, primary_actor: conversation, read_at: nil)
@@ -1085,6 +1116,21 @@ RSpec.describe 'Conversations API', type: :request do
         last_seen_at = conversation.messages.incoming.last.created_at - 1.second
         expect(conversation.reload.agent_last_seen_at).to eq(last_seen_at)
         expect(conversation.reload.assignee_last_seen_at).to eq(last_seen_at)
+      end
+
+      it 'broadcasts conversation.read so other open dashboards show it unread again' do
+        allow(Rails.configuration.dispatcher).to receive(:dispatch)
+
+        post "/api/v1/accounts/#{account.id}/conversations/#{conversation.display_id}/unread",
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:success)
+        expect(Rails.configuration.dispatcher).to have_received(:dispatch).with(
+          'conversation.read',
+          kind_of(Time),
+          hash_including(conversation: have_attributes(id: conversation.id))
+        )
       end
 
       it 'refreshes unread count cache when conversation is marked unread' do
