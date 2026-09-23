@@ -117,7 +117,7 @@ const replyToPreview = computed(() => {
     :class="[
       messageClass,
       {
-        'max-w-[75%] sm:max-w-[65%]': variant !== MESSAGE_VARIANTS.EMAIL,
+        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
       },
     ]"
   >
