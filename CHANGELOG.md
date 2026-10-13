@@ -7,6 +7,17 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [4.19.0-wa.2] - 2026-10-13
+
+### ✨ Adicionado (Added)
+- **Botão de Recursos e Ações do WhatsApp na barra inferior de digitação (`ReplyBottomPanel` / `ReplyBox`):**
+  - Botão dedicado com ícone do WhatsApp posicionado na barra inferior de composição ao lado do clips de anexo (📎), replicando a experiência de ações ricas do WhatsApp Business mobile.
+  - Abertura de gaveta modal responsiva (`WhatsAppActionsModal`) integrada diretamente à conversa ativa (`currentChat`), transmitindo automaticamente contexto de contato (`name`, `phone_number`), conversa (`id`, `inbox_id`) e instância (`ti1` / `suporte`).
+  - Suporte completo ao envio interativo de enquetes (múltipla escolha ou voto único), menus de lista, botões rápidos, localização institucional (Matriz, Filial e Frigorífico) e chave Pix da TI Zaleski via Evolution API.
+  - Comunicação bidirecional via `postMessage` (`appContext` e `closeModal`) permitindo fechamento automático suave do modal após envio da mensagem interativa.
+
+---
+
 ## [4.19.0-wa.1] - 2026-09-19
 
 ### ✨ Adicionado (Added)

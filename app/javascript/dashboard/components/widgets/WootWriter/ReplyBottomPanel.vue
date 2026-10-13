@@ -138,6 +138,7 @@ export default {
     'selectContentTemplate',
     'toggleQuotedReply',
     'requestContactInfoTemplate',
+    'selectWhatsAppActions',
   ],
   setup(props) {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -186,6 +187,10 @@ export default {
     showAttachButton() {
       if (this.isEditorDisabled) return false;
       return this.showFileUpload || this.isNote;
+    },
+    showWhatsAppActionsButton() {
+      if (this.isEditorDisabled) return false;
+      return !this.isOnPrivateNote;
     },
     showAudioRecorderButton() {
       if (this.isEditorDisabled) return false;
@@ -319,6 +324,15 @@ export default {
           sm
         />
       </FileUpload>
+      <NextButton
+        v-if="showWhatsAppActionsButton"
+        v-tooltip.top-end="'Ações e Recursos do WhatsApp (Enquetes, Listas, Localização, Pix)'"
+        icon="i-ph-whatsapp-logo"
+        slate
+        faded
+        sm
+        @click="$emit('selectWhatsAppActions')"
+      />
       <NextButton
         v-if="showAudioRecorderButton"
         v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.TIP_AUDIORECORDER_ICON')"
